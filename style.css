@@ -1,0 +1,111 @@
+body {
+  margin:0;
+  font-family:Arial;
+}
+
+/* HEADER */
+.header {
+  background:#0b2d5c;
+  color:white;
+  padding:10px 20px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.header-left {
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.header img {
+  height: 40px;
+  width: auto;
+}
+
+/* ✅ LOGIN */
+.logo-login {
+  width: 140px;
+  height: auto;
+}
+
+/* ✅ DASHBOARD */
+.logo-dashboard {
+  width: 60px;
+  height: auto;
+}
+
+/* ✅ TARJETAS */
+.card {
+  background: white;
+  padding: 15px;
+  margin: 10px;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* ✅ MODAL */
+.modal {
+  display: none;
+  position: fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background: rgba(0,0,0,0.6);
+}
+
+.modal-content {
+  background:white;
+  margin:5% auto;
+  padding:20px;
+  width:80%;
+}
+
+/* ✅ PDF */
+#visorPDF {
+  width:100%;
+  height:400px;
+  border:1px solid #ccc;
+}
+
+/* ✅ FIRMA */
+#firmaCanvas {
+  border:1px solid black;
+  width:100%;
+  height:150px;
+}
+
+/* ✅ BOTONES */
+button {
+  cursor: pointer;
+}
+.menu {
+  width:220px;
+  background:#0f172a;
+  padding:15px;
+}
+
+.menu button {
+  width:100%;
+  padding:12px;
+  margin-bottom:10px;
+  border:none;
+  background:#1e293b;
+  color:white;
+  text-align:left;
+  border-radius:5px;
+}
+
+.menu button:hover {
+  background:#334155;
+}
+
+/* tarjetas */
+.card {
+  background:white;
+  padding:15px;
+  margin:10px 0;
+  border-radius:10px;
+}

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <img src="logo.png" class="logo-dashboard">
+    <h2>Sistema VW</h2>
+  </div>
+
+  <span id="usuario"></span>
+</div>
+
+<div class="container">
+
+  <div id="menu" class="menu"></div>
+
+  <div id="contenido" class="contenido"></div>
+
+</div>
+
+<!-- ✅ MODAL VISOR PDF -->
+<div id="visorModal" class="modal">
+  <div class="modal-content">
+
+    <span onclick="cerrarModal()" class="cerrar">X</span>
+
+    <iframe id="visorPDF"></iframe>
+
+    <h3>Firma</h3>
+
+    <canvas id="firmaCanvas"></canvas>
+
+    <button onclick="limpiarFirma()">Limpiar</button>
+    <button onclick="guardarFirmaCanvas()">Guardar firma</button>
+
+  </div>
+</div>
+<script>
+window.addEventListener("load", () => {
+  setTimeout(() => {
+    if(window.inicializarFirma){
+      inicializarFirma();
+    }
+  }, 500);
+});
+</script>
+<script type="module" src="app.js"></script>
+
+</body>
+</html>
