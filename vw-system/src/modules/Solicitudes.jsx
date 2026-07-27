@@ -1,218 +1,662 @@
 import { useState, useEffect } from "react";
-import { db } from "../firebase";
+
 import {
   collection,
-  addDoc,
   getDocs,
   updateDoc,
+  deleteDoc,
   doc
 } from "firebase/firestore";
 
-import PDFViewer from "./PDFViewer";
-import Firmas from "./Firmas";
+import { db } from "../firebase";
 
-export default function Solicitudes({ user, rol }) {
+import SolicitudViaje from "./SolicitudViaje";
+import SolicitudPrima from "./SolicitudPrima";
+import SolicitudEquipo from "./SolicitudEquipo";
+import SolicitudSistema from "./SolicitudSistemas";
 
-  const [file,setFile] = useState(null);
-  const [lista,setLista] = useState([]);
-  const [pdf,setPdf] = useState("");
-  const [firma,setFirma] = useState(null);
+export default function Solicitudes({
+  user,
+  rol
+}) {
 
-  //////////////////////////////////////////////////////
-  // ✅ CARGAR SOLICITUDES
-  //////////////////////////////////////////////////////
-  const cargar = async ()=>{
-    const snap = await getDocs(collection(db,"solicitudes"));
+  const [tipo, setTipo] =
+    useState("");
 
-    const arr=[];
-    snap.forEach(d=>{
-      arr.push({id:d.id,...d.data()});
-    });
+  const [solicitudes,
+    setSolicitudes] =
+    useState([]);
 
-    setLista(arr);
-  };
+  useEffect(() => {
 
-  useEffect(()=>{
-    cargar();
-  },[]);
+    obtenerSolicitudes();
 
-  //////////////////////////////////////////////////////
-  // ✅ BASE64
-  //////////////////////////////////////////////////////
-  const toBase64 = (file)=>{
-    return new Promise((resolve)=>{
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = ()=>resolve(reader.result);
-    });
-  };
+  }, []);
 
-  //////////////////////////////////////////////////////
-  // ✅ ENVIAR SOLICITUD (EMPLEADO)
-  //////////////////////////////////////////////////////
-  const enviar = async ()=>{
-    if(!file) return;
+  const obtenerSolicitudes =
+    async () => {
 
-    const base64 = await toBase64(file);
+      try {
 
-    await addDoc(collection(db,"solicitudes"),{
-      usuario:user.email,
-      archivo:base64,
-      nombre:file.name,
-      estado:"En proceso",
-      firmado:false,
-      fecha:new Date()
-    });
+        const snapshot =
+          await getDocs(
+            collection(
+              db,
+              "Solicitudes"
+            )
+          );
 
-    setFile(null);
-    cargar();
-  };
+        const datos =
+          snapshot.docs.map(
+            item => ({
+              id: item.id,
+              ...item.data()
+            })
+          );
 
-  //////////////////////////////////////////////////////
-  // ✅ APROBAR
-  //////////////////////////////////////////////////////
-  const aprobar = async (sol)=>{
-    setFirma(sol); // abre firma
-  };
+        setSolicitudes(
+          datos
+        );
 
-  //////////////////////////////////////////////////////
-  // ✅ RECHAZAR (NUEVO)
-  //////////////////////////////////////////////////////
-  const rechazar = async (id)=>{
-    await updateDoc(doc(db,"solicitudes",id),{
-      estado:"Rechazada",
-      firmado:false
-    });
+      } catch (error) {
 
-    cargar();
-  };
+        console.error(error);
 
-  //////////////////////////////////////////////////////
-  // ✅ FILTRO POR ROL
-  //////////////////////////////////////////////////////
-  const datosFiltrados = lista.filter(s=>{
-    if(rol === "coordinador" || rol === "admin"){
-      return true;
+      }
+
+    };
+
+const aprobar = async (
+  id,
+  estadoActual
+) => {
+
+  let nuevoEstado =
+    "Aprobada";
+
+  if (
+    estadoActual ===
+    "Pendiente Coordinador"
+  ) {
+
+    nuevoEstado =
+      "Pendiente Gerente";
+
+  }
+
+  await updateDoc(
+
+    doc(
+      db,
+      "Solicitudes",
+      id
+    ),
+
+    {
+      estado:
+        nuevoEstado
     }
-    return s.usuario === user.email;
-  });
 
-  //////////////////////////////////////////////////////
-  // ✅ COLOR ESTADO
-  //////////////////////////////////////////////////////
-  const colorEstado = (estado)=>{
-    if(estado==="Aprobada") return "green";
-    if(estado==="Rechazada") return "red";
-    return "orange";
+  );
+
+  obtenerSolicitudes();
+
   };
 
-  //////////////////////////////////////////////////////
-  // ✅ UI
-  //////////////////////////////////////////////////////
+  const rechazar = async (id) => {
+
+    await updateDoc(
+
+      doc(
+        db,
+        "Solicitudes",
+        id
+      ),
+
+      {
+        estado:
+          "Rechazada"
+      }
+
+    );
+
+    obtenerSolicitudes();
+
+  };
+
+  const eliminar = async (id) => {
+
+    await deleteDoc(
+
+      doc(
+        db,
+        "Solicitudes",
+        id
+      )
+
+    );
+
+    obtenerSolicitudes();
+
+  };
+
+  let listaMostrar =
+    solicitudes;
+
+  if (
+    rol === "empleado"
+  ) {
+
+    listaMostrar =
+      solicitudes.filter(
+        item =>
+          item.usuario ===
+          user?.email
+      );
+
+  }
+
+ else if (
+  rol === "coordinador"
+) {
+
+  listaMostrar =
+    solicitudes.filter(
+      item =>
+        item.grupoFirestoreId ===
+        user?.grupoFirestoreId
+    );
+
+}
+  else if (
+  rol === "gerente"
+) {
+
+  listaMostrar =
+    solicitudes.filter(
+      item =>
+
+        item.estado ===
+          "Pendiente Gerente"
+
+        ||
+
+        item.estado ===
+          "Aprobada"
+
+        ||
+
+        item.estado ===
+          "Rechazada"
+    );
+
+}
+  if (
+    tipo === "viaje"
+  ) {
+
+    return (
+
+      <SolicitudViaje
+        user={user}
+        volver={() =>
+          setTipo("")
+        }
+      />
+
+    );
+
+  }
+
+  if (
+    tipo === "prima"
+  ) {
+
+    return (
+
+      <SolicitudPrima
+        user={user}
+        volver={() =>
+          setTipo("")
+        }
+      />
+
+    );
+
+  }
+
+  if (
+    tipo === "equipo"
+  ) {
+
+    return (
+
+      <SolicitudEquipo
+        user={user}
+        volver={() =>
+          setTipo("")
+        }
+      />
+
+    );
+
+  }
+
+  if (
+    tipo === "sistema"
+  ) {
+
+    return (
+
+      <SolicitudSistema
+        user={user}
+        volver={() =>
+          setTipo("")
+        }
+      />
+
+    );
+
+  }
+
   return (
-    <div className="card">
 
-      <h2>📑 Solicitudes</h2>
+   <div
+  className="sap-card sap-card-full"
+  style={{
+    width: "100%",
+    display: "block"
+  }}
+>
+      <h2>
+        Solicitudes
+      </h2>
 
-      {/* ✅ EMPLEADO ENVÍA */}
       {rol === "empleado" && (
-        <div style={{marginBottom:"15px"}}>
 
-          <input
-            type="file"
-            accept="application/pdf"
-            onChange={e=>setFile(e.target.files[0])}
-          />
+        <div
+          className="sap-cards"
+        >
 
-          <button onClick={enviar}>
-            Enviar solicitud
-          </button>
+          <div
+            className="sap-card"
+            onClick={() =>
+              setTipo(
+                "viaje"
+              )
+            }
+          >
+            <h3>
+              ✈ Solicitud Viaje
+            </h3>
+          </div>
 
-          {/* ✅ FORMATO (Excel) */}
-          <button style={{marginLeft:"10px"}}>
-            Ver formatos
-          </button>
+          <div
+            className="sap-card"
+            onClick={() =>
+              setTipo(
+                "prima"
+              )
+            }
+          >
+            <h3>
+              💰 Solicitud Prima
+            </h3>
+          </div>
+
+          <div
+            className="sap-card"
+            onClick={() =>
+              setTipo(
+                "equipo"
+              )
+            }
+          >
+            <h3>
+              💻 Solicitud Equipo
+            </h3>
+          </div>
+
+          <div
+            className="sap-card"
+            onClick={() =>
+              setTipo(
+                "sistema"
+              )
+            }
+          >
+            <h3>
+              🖥 Solicitud Sistema
+            </h3>
+          </div>
 
         </div>
+
       )}
+{rol === "empleado" && (
 
-      {/* ✅ TABLA */}
-      <table>
+  <>
+  
+    <h3
+      style={{
+        marginTop: "25px",
+        marginBottom: "10px"
+      }}
+    >
+      Mis Solicitudes
+    </h3>
 
-        <thead>
-          <tr>
-            <th>Usuario</th>
-            <th>Archivo</th>
-            <th>Estado</th>
-            <th>Acciones</th>
+    <table className="table">
+
+      ...
+
+    </table>
+
+  </>
+
+)}
+{rol === "empleado" && (
+
+  <table className="table">
+
+    <thead>
+      <tr>
+        <th>Categoría</th>
+        <th>Estado</th>
+        <th>Fecha</th>
+      </tr>
+    </thead>
+
+    <tbody>
+
+      {listaMostrar.length === 0 ? (
+
+        <tr>
+          <td colSpan="3">
+            No tienes solicitudes
+          </td>
+        </tr>
+
+      ) : (
+
+        listaMostrar.map(item => (
+
+          <tr key={item.id}>
+
+            <td>{item.tipo}</td>
+
+            <td>
+              <span
+                style={{
+                  fontWeight: "bold",
+                  color:
+                    item.estado === "Aprobada"
+                      ? "green"
+                      : item.estado === "Rechazada"
+                      ? "red"
+                      : "orange"
+                }}
+              >
+                {item.estado}
+              </span>
+            </td>
+
+            <td>
+              {item.fechaCreacion
+                ? new Date(
+                    item.fechaCreacion
+                  ).toLocaleDateString()
+                : ""
+              }
+            </td>
+
           </tr>
-        </thead>
 
-        <tbody>
+        ))
 
-          {datosFiltrados.map(s=>(
-            <tr key={s.id}>
-
-              <td>{s.usuario}</td>
-
-              <td>{s.nombre}</td>
-
-              <td style={{
-                color: colorEstado(s.estado)
-              }}>
-                {s.estado}
-              </td>
-
-              <td>
-
-                {/* ✅ VER */}
-                <button onClick={()=>setPdf(s.archivo)}>
-                  Ver
-                </button>
-
-                {/* ✅ COORDINADOR */}
-                {(rol === "coordinador") && s.estado !== "Aprobada" && s.estado !== "Rechazada" && (
-                  <>
-                    <button onClick={()=>aprobar(s)}>
-                      Aprobar
-                    </button>
-
-                    <button
-                      onClick={()=>rechazar(s.id)}
-                      style={{background:"red", color:"white", marginLeft:"5px"}}
-                    >
-                      Rechazar
-                    </button>
-                  </>
-                )}
-
-              </td>
-
-            </tr>
-          ))}
-
-        </tbody>
-
-      </table>
-
-      {/* ✅ VISOR */}
-      {pdf && (
-        <PDFViewer archivo={pdf}/>
       )}
 
-      {/* ✅ FIRMA */}
-      {firma && (
-        <Firmas
-          user={user}
-          rol={rol}
-          reporteSeleccionado={firma}
-          onClose={()=>{
-            setFirma(null);
-            cargar();
-          }}
-        />
+    </tbody>
+
+  </table>
+
+)}
+      {rol !== "empleado" && (
+
+        <table className="table">
+
+          <thead>
+
+            <tr>
+
+              <th>
+              Categoría
+              </th>
+
+              <th>
+                Correo
+              </th>
+
+              <th>
+                Nombre
+              </th>
+
+              <th>
+                Grupo
+              </th>
+              <th>
+              Nivel
+              </th>
+              <th>
+                Estado
+              </th>
+
+              <th>
+                Fecha
+              </th>
+
+              <th>
+                Acciones
+              </th>
+            </tr>
+
+          </thead>
+
+          <tbody>
+
+            {listaMostrar.length === 0 ? (
+
+              <tr>
+
+                <td colSpan="8">
+
+                  No existen solicitudes
+
+                </td>
+
+              </tr>
+
+            ) : (
+
+              listaMostrar.map(
+                item => (
+
+                  <tr
+                    key={item.id}
+                  >
+
+                    <td>
+                      {
+                        item.tipo
+                      }
+                    </td>
+
+                    <td>
+                      {
+                        item.usuario
+                      }
+                    </td>
+
+                    <td>
+                      {item.nombre}
+                      {" "}
+                      {item.apellido}
+                    </td>
+
+                    <td>
+                    {item.grupoNombre}
+                    </td>
+                     
+                      <td>
+
+                      {
+                      item.estado ===
+                      "Pendiente Coordinador"
+
+                      ? "Coordinador"
+
+                     : item.estado ===
+                      "Pendiente Gerente"
+
+                     ? "Gerente"
+
+                    : "-"
+                     }
+
+                    </td>
+                    <td>
+
+                 <span
+               style={{
+              fontWeight: "bold",
+                color:
+
+                item.estado ===
+                    "Aprobada"
+
+                    ? "green"
+
+                   : item.estado ===
+                      "Rechazada"
+
+                         ? "red"
+
+                      : "orange"
+                      }}
+                       >
+                      {item.estado}
+                     </span>
+
+                    </td>
+
+                    <td>
+                      {item.fechaCreacion
+                        ? new Date(
+                            item.fechaCreacion
+                          )
+                            .toLocaleDateString()
+                        : ""
+                      }
+                    </td>
+
+                    <td>
+
+
+{rol === "coordinador" &&
+ item.estado ===
+ "Pendiente Coordinador" && (
+
+ <>
+   <button
+     onClick={() =>
+       aprobar(
+         item.id,
+         item.estado
+       )
+     }
+   >
+     Aprobar
+   </button>
+
+   <button
+     style={{
+       marginLeft: "5px"
+     }}
+     onClick={() =>
+       rechazar(
+         item.id
+       )
+     }
+   >
+     Rechazar
+   </button>
+ </>
+)}
+{rol === "gerente" &&
+ item.estado ===
+ "Pendiente Gerente" && (
+
+ <>
+   <button
+     onClick={() =>
+       aprobar(
+         item.id,
+         item.estado
+       )
+     }
+   >
+     Aprobar
+   </button>
+
+   <button
+     style={{
+       marginLeft: "5px"
+     }}
+     onClick={() =>
+       rechazar(
+         item.id
+       )
+     }
+   >
+     Rechazar
+   </button>
+ </>
+)}
+  {rol === "admin" && (
+
+    <button
+      style={{
+        marginLeft: "5px"
+      }}
+      onClick={() =>
+        eliminar(
+          item.id
+        )
+      }
+    >
+      Eliminar
+    </button>
+
+  )}
+
+</td>
+
+                  </tr>
+
+                )
+
+              )
+
+            )}
+
+          </tbody>
+
+        </table>
+
       )}
 
     </div>
+
   );
+
 }

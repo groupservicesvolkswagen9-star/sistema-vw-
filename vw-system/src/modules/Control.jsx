@@ -1,121 +1,440 @@
 import { useEffect, useState } from "react";
+
+import {
+  collection,
+  addDoc,
+  getDocs,
+  updateDoc,
+  deleteDoc,
+  doc
+} from "firebase/firestore";
+
 import { db } from "../firebase";
-import { getDocs, collection } from "firebase/firestore";
 
-export default function Control(){
+export default function Control({
+  user,
+  rol
+}) {
 
-  const [reportes,setReportes] = useState([]);
-  const [pdf,setPdf] = useState("");
-  const [mes,setMes] = useState("");
+  const [inicio, setInicio] =
+    useState("");
 
-  //////////////////////////////////////
-  // ✅ Cargar reportes
-  //////////////////////////////////////
-  const cargar = async ()=>{
-    const snap = await getDocs(collection(db,"reportes"));
+  const [fin, setFin] =
+    useState("");
 
-    const arr = [];
-    snap.forEach(d=>{
-      arr.push({ id:d.id, ...d.data() });
-    });
+  const [vacaciones,
+    setVacaciones] =
+    useState([]);
 
-    setReportes(arr);
-  };
+  useEffect(() => {
+    cargarVacaciones();
+  }, []);
 
-  useEffect(()=>{
-    cargar();
-  },[]);
+  const cargarVacaciones =
+    async () => {
 
-  //////////////////////////////////////
-  // ✅ Filtro por mes
-  //////////////////////////////////////
-  const filtrados = reportes.filter(r=>{
-    if(!mes) return true;
-    return (r.nombre || "").toLowerCase().includes(mes.toLowerCase());
-  });
+      const snap =
+        await getDocs(
+          collection(
+            db,
+            "Vacaciones"
+          )
+        );
 
-  //////////////////////////////////////
-  // ✅ UI
-  //////////////////////////////////////
+      const lista =
+        snap.docs.map(
+          item => ({
+            id: item.id,
+            ...item.data()
+          })
+        );
+
+      setVacaciones(lista);
+    };
+
+  const solicitar =
+    async () => {
+
+      if (
+        !inicio ||
+        !fin
+      ) {
+
+        alert(
+          "Selecciona fechas"
+        );
+
+        return;
+      }
+
+      await addDoc(
+        collection(
+          db,
+          "Vacaciones"
+        ),
+        {
+          usuario:
+            user?.email,
+
+          nombre:
+            user?.nombre || "",
+
+          apellido:
+            user?.apellido || "",
+
+          grupo:
+            user?.grupo || "",
+
+          inicio,
+
+          fin,
+
+          estado:
+            "Pendiente",
+
+          fechaCreacion:
+            new Date()
+              .toISOString()
+        }
+      );
+
+      setInicio("");
+      setFin("");
+
+      cargarVacaciones();
+    };
+
+  const actualizarEstado =
+    async (
+      id,
+      estado
+    ) => {
+
+      await updateDoc(
+        doc(
+          db,
+          "Vacaciones",
+          id
+        ),
+        {
+          estado
+        }
+      );
+
+      cargarVacaciones();
+    };
+
+  const eliminar =
+    async (id) => {
+
+      await deleteDoc(
+        doc(
+          db,
+          "Vacaciones",
+          id
+        )
+      );
+
+      cargarVacaciones();
+    };
+
+  let datos = vacaciones;
+
+  // EMPLEADO
+
+  if (
+    rol === "empleado"
+  ) {
+
+    datos =
+      vacaciones.filter(
+        item =>
+          item.usuario ===
+          user?.email
+      );
+  }
+
+  // COORDINADOR
+
+  else if (
+    rol === "coordinador"
+  ) {
+
+    datos =
+      vacaciones.filter(
+        item =>
+          item.grupo ===
+          user?.grupo
+      );
+  }
+
+  // ADMIN
+
+  else if (
+    rol === "admin"
+  ) {
+
+    datos = vacaciones;
+  }
+
   return (
-    <div>
 
-      <h2>Control de Reportes</h2>
+    <div className="sap-card">
 
-      {/* 🔍 FILTRO */}
-      <input
-        placeholder="Filtrar por mes (ej: marzo)"
-        value={mes}
-        onChange={e=>setMes(e.target.value)}
-        style={{marginBottom:"15px", padding:"8px"}}
-      />
+      <h2>
+        Vacaciones
+      </h2>
 
-      {/* 📊 TABLA */}
-      <table>
+      {rol === "empleado" && (
+
+        <>
+
+          <input
+            type="date"
+            value={inicio}
+            onChange={(e) =>
+              setInicio(
+                e.target.value
+              )
+            }
+          />
+
+          <input
+            type="date"
+            value={fin}
+            onChange={(e) =>
+              setFin(
+                e.target.value
+              )
+            }
+            style={{
+              marginLeft: "10px"
+            }}
+          />
+
+          <button
+            onClick={solicitar}
+            style={{
+              marginLeft: "10px"
+            }}
+          >
+            Solicitar vacaciones
+          </button>
+
+        </>
+
+      )}
+
+      <table className="table">
 
         <thead>
+
           <tr>
-            <th>Usuario</th>
-            <th>Archivo</th>
-            <th>Estado</th>
-            <th>Entrega</th>
-            <th>Acción</th>
+
+            <th>
+              Usuario
+            </th>
+
+            {rol !== "empleado" && (
+              <>
+                <th>
+                  Nombre
+                </th>
+
+                <th>
+                  Apellido
+                </th>
+
+                <th>
+                  Grupo
+                </th>
+              </>
+            )}
+
+            <th>
+              Inicio
+            </th>
+
+            <th>
+              Fin
+            </th>
+
+            <th>
+              Estado
+            </th>
+
+            {rol !== "empleado" && (
+              <th>
+                Acciones
+              </th>
+            )}
+
           </tr>
+
         </thead>
 
         <tbody>
 
-          {filtrados.map(r=>(
-            <tr key={r.id}>
-              <td>{r.usuario}</td>
-              <td>{r.nombre || "Sin nombre"}</td>
+          {datos.length === 0 ? (
 
-              <td>
-                {r.firmado ? "✅ Firmado" : "⏳ Pendiente"}
-              </td>
+            <tr>
 
-              <td style={{
-                color: r.firmado ? "green" : "red"
-              }}>
-                {r.firmado ? "Entregado" : "Falta"}
-              </td>
-
-              <td>
-                <button onClick={()=>setPdf(r.archivo)}>
-                  Ver
-                </button>
+              <td colSpan="8">
+                No existen
+                solicitudes
               </td>
 
             </tr>
-          ))}
+
+          ) : (
+
+            datos.map(
+              item => (
+
+                <tr
+                  key={item.id}
+                >
+
+                  <td>
+                    {item.usuario}
+                  </td>
+
+                  {rol !==
+                    "empleado" && (
+                    <>
+                      <td>
+                        {item.nombre || ""}
+                      </td>
+
+                      <td>
+                        {item.apellido || ""}
+                      </td>
+
+                      <td>
+                        {item.grupo || ""}
+                      </td>
+                    </>
+                  )}
+
+                  <td>
+                    {item.inicio}
+                  </td>
+
+                  <td>
+                    {item.fin}
+                  </td>
+
+                  <td>
+                    {item.estado}
+                  </td>
+
+                  {rol ===
+                    "coordinador" && (
+
+                    <td>
+
+                      <button
+                        onClick={() =>
+                          actualizarEstado(
+                            item.id,
+                            "Aprobado"
+                          )
+                        }
+                      >
+                        Aprobar
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          actualizarEstado(
+                            item.id,
+                            "Rechazado"
+                          )
+                        }
+                        style={{
+                          marginLeft: "5px"
+                        }}
+                      >
+                        Rechazar
+                      </button>
+
+                    </td>
+
+                  )}
+
+                  {rol ===
+                    "admin" && (
+
+                    <td>
+
+                      <button
+                        onClick={() =>
+                          actualizarEstado(
+                            item.id,
+                            "Aprobado"
+                          )
+                        }
+                      >
+                        Aprobar
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          actualizarEstado(
+                            item.id,
+                            "Rechazado"
+                          )
+                        }
+                        style={{
+                          marginLeft: "5px"
+                        }}
+                      >
+                        Rechazar
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          actualizarEstado(
+                            item.id,
+                            "Cancelado"
+                          )
+                        }
+                        style={{
+                          marginLeft: "5px"
+                        }}
+                      >
+                        Cancelar
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          eliminar(
+                            item.id
+                          )
+                        }
+                        style={{
+                          marginLeft: "5px"
+                        }}
+                      >
+                        Eliminar
+                      </button>
+
+                    </td>
+
+                  )}
+
+                </tr>
+
+              )
+            )
+
+          )}
 
         </tbody>
 
       </table>
 
-      {/* 📊 RESUMEN */}
-      <div style={{marginTop:"20px"}}>
-
-        <p>
-          ✅ Entregados: {reportes.filter(r=>r.firmado).length}
-        </p>
-
-        <p>
-          ❌ Pendientes: {reportes.filter(r=>!r.firmado).length}
-        </p>
-
-      </div>
-
-      {/* ✅ VISOR PDF (FIX PRINCIPAL) */}
-      {pdf && (
-        <iframe
-          src={pdf}
-          width="100%"
-          height="500"
-          style={{marginTop:"20px", border:"1px solid #ccc"}}
-        ></iframe>
-      )}
-
     </div>
+
   );
 }

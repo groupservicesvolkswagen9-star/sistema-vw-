@@ -1,132 +1,115 @@
-import { useRef, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+
+import {
+  collection,
+  getDocs,
+  updateDoc,
+  doc
+} from "firebase/firestore";
+
 import { db } from "../firebase";
-import { doc, updateDoc } from "firebase/firestore";
 
-export default function Firmas({ user, rol, reporteSeleccionado, onClose }) {
+export default function Firmas({ rol }) {
 
-  const canvasRef = useRef(null);
-  const [dibujando,setDibujando] = useState(false);
+  const [documentos, setDocumentos] = useState([]);
 
-  ////////////////////////////////////////////////////
-  // ✅ SOLO COORDINADOR
-  ////////////////////////////////////////////////////
-  if(rol !== "coordinador"){
-    return <h3>No autorizado</h3>;
+  const cargar = async () => {
+
+    const snap = await getDocs(
+      collection(db, "Solicitudes")
+    );
+
+    const lista = snap.docs.map(item => ({
+      id: item.id,
+      ...item.data()
+    }));
+
+    setDocumentos(lista);
+  };
+
+  useEffect(() => {
+    cargar();
+  }, []);
+
+  if (
+    rol !== "coordinador" &&
+    rol !== "admin"
+  ) {
+    return (
+      <div className="sap-card">
+        <h2>Firmas PDF</h2>
+        <p>No tienes permisos</p>
+      </div>
+    );
   }
 
-  ////////////////////////////////////////////////////
-  // ✅ CANVAS
-  ////////////////////////////////////////////////////
-  useEffect(()=>{
+  const firmar = async (id) => {
 
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
+    await updateDoc(
+      doc(db, "Solicitudes", id),
+      {
+        firmado: true,
+        fechaFirma: new Date()
+      }
+    );
 
-    let drawing = false;
-
-    const start = (e)=>{
-      drawing = true;
-      ctx.moveTo(e.offsetX, e.offsetY);
-    };
-
-    const stop = ()=>{
-      drawing = false;
-      ctx.beginPath();
-    };
-
-    const draw = (e)=>{
-      if(!drawing) return;
-
-      ctx.lineWidth = 2;
-      ctx.lineCap = "round";
-
-      ctx.lineTo(e.offsetX,e.offsetY);
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.moveTo(e.offsetX,e.offsetY);
-    };
-
-    canvas.addEventListener("mousedown", start);
-    canvas.addEventListener("mouseup", stop);
-    canvas.addEventListener("mousemove", draw);
-
-    return ()=>{
-      canvas.removeEventListener("mousedown", start);
-      canvas.removeEventListener("mouseup", stop);
-      canvas.removeEventListener("mousemove", draw);
-    };
-
-  },[]);
-
-  ////////////////////////////////////////////////////
-  // ✅ LIMPIAR FIRMA
-  ////////////////////////////////////////////////////
-  const limpiar = ()=>{
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    ctx.clearRect(0,0,canvas.width,canvas.height);
+    cargar();
   };
 
-  ////////////////////////////////////////////////////
-  // ✅ GUARDAR FIRMA EN REPORTE
-  ////////////////////////////////////////////////////
-  const guardar = async ()=>{
-
-    if(!reporteSeleccionado) return;
-
-    const canvas = canvasRef.current;
-
-    const firmaBase64 = canvas.toDataURL();
-
-    await updateDoc(doc(db,"reportes",reporteSeleccionado.id),{
-      firma: firmaBase64,
-      firmado: true,
-      estado: "aprobado",
-      firmadoPor: user.email,
-      fechaFirma: new Date()
-    });
-
-    alert("✅ Documento firmado correctamente");
-
-    onClose();
-  };
-
-  ////////////////////////////////////////////////////
-  // ✅ UI
-  ////////////////////////////////////////////////////
   return (
-    <div className="card">
+    <div className="sap-card">
 
-      <h2>Firma de Documento</h2>
+      <h2>Firmar solicitudes</h2>
 
-      <p>
-        Reporte: {reporteSeleccionado?.nombre}
-      </p>
+      <table className="table">
 
-      <canvas
-        ref={canvasRef}
-        width="400"
-        height="150"
-        style={{
-          border:"1px solid black",
-          marginBottom:"10px"
-        }}
-      />
+        <thead>
+          <tr>
+            <th>Documento</th>
+            <th>Estado</th>
+            <th>Acción</th>
+          </tr>
+        </thead>
 
-      <br />
+        <tbody>
 
-      <button onClick={limpiar}>
-        Limpiar
-      </button>
+          {documentos.map(item => (
 
-      <button onClick={guardar} style={{marginLeft:"10px"}}>
-        Firmar documento
-      </button>
+            <tr key={item.id}>
 
-      <button onClick={onClose} style={{marginLeft:"10px"}}>
-        Cancelar
-      </button>
+              <td>
+                {item.archivo || "Documento"}
+              </td>
+
+              <td>
+                {item.firmado
+                  ? "Firmado"
+                  : "Pendiente"}
+              </td>
+
+              <td>
+
+                {!item.firmado && (
+
+                  <button
+                    onClick={() =>
+                      firmar(item.id)
+                    }
+                  >
+                    Firmar PDF
+                  </button>
+
+                )}
+
+              </td>
+
+            </tr>
+
+          ))}
+
+        </tbody>
+
+      </table>
 
     </div>
   );

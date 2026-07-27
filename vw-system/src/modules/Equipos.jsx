@@ -1,115 +1,361 @@
 import { useEffect, useState } from "react";
+
+import {
+  collection,
+  addDoc,
+  getDocs,
+  updateDoc,
+  deleteDoc,
+  doc
+} from "firebase/firestore";
+
 import { db } from "../firebase";
-import { getDocs, collection } from "firebase/firestore";
 
-export default function Control({ rol }) {
+export default function Equipos({
+  user,
+  rol,
+  vista
+}) {
+const [editando, setEditando] =
+  useState(null);
+  const [equipo, setEquipo] =
+    useState("");
 
-  const [reportes,setReportes] = useState([]);
-  const [pdf,setPdf] = useState("");
-  const [mes,setMes] = useState("");
+  const [serie, setSerie] =
+    useState("");
 
-  //////////////////////////////////////
-  // ✅ CARGAR REPORTES
-  //////////////////////////////////////
-  const cargar = async ()=>{
-    const snap = await getDocs(collection(db,"reportes"));
-    const arr = [];
+  const [equipos, setEquipos] =
+    useState([]);
 
-    snap.forEach(d=>{
-      arr.push({ id:d.id, ...d.data() });
-    });
+  useEffect(() => {
+    cargarEquipos();
+  }, []);
 
-    setReportes(arr);
-  };
+  const cargarEquipos = async () => {
 
-  useEffect(()=>{
-    cargar();
-  },[]);
+    try {
 
-  //////////////////////////////////////
-  // ✅ FILTRO POR MES
-  //////////////////////////////////////
-  const filtrados = reportes.filter(r=>{
-    if(!mes) return true;
-    return (r.nombre || "").toLowerCase().includes(mes.toLowerCase());
-  });
+      const snap = await getDocs(
+        collection(
+          db,
+          "Equipos"
+        )
+      );
+const eliminar = async (id) => {
 
-  //////////////////////////////////////
-  // ✅ VALIDAR ROL
-  //////////////////////////////////////
-  if(rol !== "coordinador"){
-    return <h2>No autorizado</h2>;
+  try {
+
+    await deleteDoc(
+      doc(
+        db,
+        "Equipos",
+        id
+      )
+    );
+
+    await cargarEquipos();
+
+  } catch (error) {
+
+    console.error(error);
+
   }
 
-  //////////////////////////////////////
-  // ✅ UI
-  //////////////////////////////////////
+};
+      const lista = snap.docs.map(
+        (doc) => ({
+          id: doc.id,
+          ...doc.data()
+        })
+      );
+
+      setEquipos(lista);
+
+    } catch (error) {
+
+      console.error(error);
+
+    }
+
+  };
+
+  const guardarEquipo = async () => {
+
+    try {
+
+      if (
+        !equipo.trim() ||
+        !serie.trim()
+      ) {
+
+        alert(
+          "Completa los campos"
+        );
+
+        return;
+
+      }
+
+      await addDoc(
+        collection(
+          db,
+          "Equipos"
+        ),
+        {
+          usuario:
+            user?.email || "",
+
+          nombre:
+            user?.nombre || "",
+
+          apellido:
+            user?.apellido || "",
+
+          grupo:
+            user?.grupo || "",
+
+          equipo,
+
+          serie,
+
+          fecha:
+            new Date()
+              .toISOString()
+        }
+      );
+
+      setEquipo("");
+      setSerie("");
+
+      await cargarEquipos();
+
+      alert(
+        "Equipo registrado"
+      );
+
+    } catch (error) {
+
+      console.error(error);
+
+      alert(
+        "Error al registrar equipo"
+      );
+
+    }
+
+  };
+
+  let listaMostrar = equipos;
+
+  // EMPLEADO
+
+  if (rol === "empleado") {
+
+    listaMostrar =
+      equipos.filter(
+        (item) =>
+          item.usuario ===
+          user?.email
+      );
+
+  }
+
+  // COORDINADOR
+
+  else if (
+    rol === "coordinador"
+  ) {
+
+    listaMostrar =
+      equipos.filter(
+        (item) =>
+          item.grupo ===
+          user?.grupo
+      );
+
+  }
+
+  // ADMIN
+
+  else if (
+    rol === "admin"
+  ) {
+
+    listaMostrar = equipos;
+
+  }
+
   return (
-    <div>
 
-      <h2>Control de Reportes</h2>
+    <div
+  className="sap-card sap-card-full"
+  style={{
+    width: "100%",
+    display: "block"
+  }}
+>
 
-      {/* ✅ BUSCADOR */}
-      <input
-        className="input"
-        placeholder="Filtrar por mes (ej: marzo)"
-        value={mes}
-        onChange={e=>setMes(e.target.value)}
-        style={{marginBottom:"15px"}}
-      />
+      <h2>
+        Equipos
+      </h2>
 
-      {/* ✅ TABLA */}
-      <table>
+      {rol === "empleado" &&
+        vista !== "mis_equipos" && (
+
+        <>
+
+          <input
+            className="fb-input"
+            placeholder="Nombre del equipo"
+            value={equipo}
+            onChange={(e) =>
+              setEquipo(
+                e.target.value
+              )
+            }
+          />
+
+          <input
+            className="fb-input"
+            placeholder="Número de serie"
+            value={serie}
+            onChange={(e) =>
+              setSerie(
+                e.target.value
+              )
+            }
+          />
+
+          <button
+            className="fb-btn"
+            onClick={
+              guardarEquipo
+            }
+          >
+            Registrar equipo
+          </button>
+
+        </>
+
+      )}
+
+      <table className="table">
 
         <thead>
+
           <tr>
-            <th>Usuario</th>
-            <th>Archivo</th>
-            <th>Estado</th>
-            <th>Entrega</th>
-            <th>Acción</th>
+
+            <th>
+              Correo
+            </th>
+
+            {(rol !== "empleado" ||
+              vista ===
+                "mis_equipos") && (
+              <>
+                <th>
+                  Nombre
+                </th>
+
+                <th>
+                  Apellido
+                </th>
+
+                <th>
+                  Grupo
+                </th>
+              </>
+            )}
+
+            <th>
+              Equipo
+            </th>
+
+            <th>
+              Serie
+            </th>
+
+            <th>
+              Fecha
+            </th>
+
           </tr>
+
         </thead>
 
         <tbody>
-          {filtrados.map(r=>(
-            <tr key={r.id}>
 
-              <td>{r.usuario}</td>
+          {listaMostrar.length === 0 ? (
 
-              <td>{r.nombre || "Sin nombre"}</td>
+            <tr>
 
-              <td>{r.firmado ? "✅ Firmado" : "⏳ Pendiente"}</td>
-
-              <td style={{
-                color: r.firmado ? "green" : "red"
-              }}>
-                {r.firmado ? "Entregado" : "Falta"}
-              </td>
-
-              <td>
-                <button onClick={()=>setPdf(r.archivo)}>
-                  Ver
-                </button>
+              <td colSpan="8">
+                No existen equipos registrados
               </td>
 
             </tr>
-          ))}
+
+          ) : (
+
+            listaMostrar.map(
+              (item) => (
+
+                <tr
+                  key={item.id}
+                >
+
+                  <td>
+                    {item.usuario}
+                  </td>
+
+                  {(rol !== "empleado" ||
+                    vista === "mis_equipos") && (
+                    <>
+                      <td>
+                        {item.nombre || ""}
+                      </td>
+
+                      <td>
+                        {item.apellido || ""}
+                      </td>
+
+                      <td>
+                        {item.grupo || ""}
+                      </td>
+                    </>
+                  )}
+
+                  <td>
+                    {item.equipo}
+                  </td>
+
+                  <td>
+                    {item.serie}
+                  </td>
+
+                  <td>
+
+                    {item.fecha
+                      ? new Date(
+                          item.fecha
+                        ).toLocaleDateString()
+                      : ""}
+
+                  </td>
+
+                </tr>
+
+              )
+            )
+
+          )}
+
         </tbody>
 
       </table>
 
-      {/* ✅ RESUMEN */}
-      <div style={{marginTop:"20px"}}>
-        <p>✅ Entregados: {reportes.filter(r=>r.firmado).length}</p>
-        <p>❌ Pendientes: {reportes.filter(r=>!r.firmado).length}</p>
-      </div>
-
-      {/* ✅ VISOR PDF (FIX ERROR) */}
-      {pdf && (
-        {pdf}
-      )}
-
     </div>
+
   );
+
 }

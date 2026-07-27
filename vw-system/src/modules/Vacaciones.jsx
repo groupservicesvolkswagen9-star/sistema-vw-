@@ -1,224 +1,677 @@
-import { useState, useEffect } from "react";
-import { db } from "../firebase";
+import { useEffect, useState } from "react";
+
 import {
   collection,
   addDoc,
   getDocs,
   updateDoc,
+  deleteDoc,
   doc
 } from "firebase/firestore";
 
-export default function Vacaciones({ user, rol }) {
+import { db } from "../firebase";
 
-  const [vista,setVista] = useState("lista");
-  const [lista,setLista] = useState([]);
-  const [fi,setFi] = useState("");
-  const [ff,setFf] = useState("");
+export default function Vacaciones({
+  user,
+  rol,
+  vista
+}) {
 
-  //////////////////////////////////////////////////////
-  // ✅ CARGAR
-  //////////////////////////////////////////////////////
-  const cargar = async ()=>{
-    const snap = await getDocs(collection(db,"vacaciones"));
+  const [inicio, setInicio] =
+    useState("");
 
-    const arr=[];
-    snap.forEach(d=>{
-      arr.push({id:d.id,...d.data()});
-    });
+  const [fin, setFin] =
+    useState("");
 
-    setLista(arr);
+  const [vacaciones,
+    setVacaciones] =
+    useState([]);
+
+  useEffect(() => {
+    cargar();
+  }, []);
+
+  const cargar = async () => {
+
+    const snap =
+      await getDocs(
+        collection(
+          db,
+          "Vacaciones"
+        )
+      );
+
+    const lista =
+      snap.docs.map(
+        (item) => ({
+          id: item.id,
+          ...item.data()
+        })
+      );
+
+    setVacaciones(lista);
   };
 
-  useEffect(()=>{
-    cargar();
-  },[]);
+  const solicitar = async () => {
 
-  //////////////////////////////////////////////////////
-  // ✅ ENVIAR SOLICITUD
-  //////////////////////////////////////////////////////
-  const enviar = async ()=>{
+    if (!inicio || !fin) {
 
-    if(!fi || !ff){
-      alert("Selecciona fechas");
+      alert(
+        "Selecciona fechas"
+      );
+
       return;
     }
+console.log(
+  "USER VACACIONES:",
+  user
+);
+    await addDoc(
+      collection(
+        db,
+        "Vacaciones"
+      ),
+      {
+        usuario:
+          user?.email,
 
-    if(fi > ff){
-      alert("Fecha inválida");
-      return;
-    }
+        nombre:
+          user?.nombre || "",
 
-    await addDoc(collection(db,"vacaciones"),{
-      usuario: user.email,
-      fechaInicio: fi,
-      fechaFin: ff,
-      estado: "En proceso",
-      fecha: new Date()
-    });
+        apellido:
+          user?.apellido || "",
 
-    setFi("");
-    setFf("");
+        grupoFirestoreId:
+       user?.grupoFirestoreId || "",
 
-    alert("✅ Solicitud enviada");
+       grupoId:
+        user?.grupoId || "",
+
+        grupoNombre:
+       user?.grupoNombre || "",
+        inicio,
+
+        fin,
+
+        estado:
+  rol === "coordinador"
+    ? "Pendiente Gerente"
+    : "Pendiente",
+      solicitanteRol:
+       rol,
+
+      fechaSolicitud:
+      new Date()
+     .toISOString()
+       }
+     );
+
+    setInicio("");
+    setFin("");
+
     cargar();
   };
 
-  //////////////////////////////////////////////////////
-  // ✅ APROBAR
-  //////////////////////////////////////////////////////
-  const aprobar = async (id)=>{
-    await updateDoc(doc(db,"vacaciones",id),{
-      estado:"Aprobada"
-    });
-    cargar();
-  };
+  const actualizarEstado =
+    async (
+      id,
+      estado
+    ) => {
 
-  //////////////////////////////////////////////////////
-  // ✅ RECHAZAR
-  //////////////////////////////////////////////////////
-  const rechazar = async (id)=>{
-    await updateDoc(doc(db,"vacaciones",id),{
-      estado:"Rechazada"
-    });
-    cargar();
-  };
+      await updateDoc(
+        doc(
+          db,
+          "Vacaciones",
+          id
+        ),
+        {
+          estado
+        }
+      );
 
-  //////////////////////////////////////////////////////
-  // ✅ FILTRO
-  //////////////////////////////////////////////////////
-  const datos = lista.filter(v=>{
-    if(rol === "empleado"){
-      return v.usuario === user.email;
-    }
-    return true;
-  });
+      cargar();
+    };
 
-  //////////////////////////////////////////////////////
-  // ✅ COLOR ESTADO
-  //////////////////////////////////////////////////////
-  const color = (estado)=>{
-    if(estado === "Aprobada") return "green";
-    if(estado === "Rechazada") return "red";
-    return "orange";
-  };
+  const eliminar =
+    async (id) => {
 
-  //////////////////////////////////////////////////////
-  // ✅ UI
-  //////////////////////////////////////////////////////
+      await deleteDoc(
+        doc(
+          db,
+          "Vacaciones",
+          id
+        )
+      );
+
+      cargar();
+    };
+
+  let datos = vacaciones;
+
+  // EMPLEADO
+
+  if (
+    rol === "empleado"
+  ) {
+
+    datos =
+      vacaciones.filter(
+        (item) =>
+          item.usuario ===
+          user?.email
+      );
+  }
+
+  // COORDINADOR
+
+  else if (
+  rol === "coordinador"
+) {
+
+  datos =
+    vacaciones.filter(
+      item =>
+        item.grupoFirestoreId ===
+        user?.grupoFirestoreId
+    );
+
+}
+// GERENTE
+else if (
+  rol === "gerente"
+) {
+
+  datos =
+    vacaciones.filter(
+      item =>
+
+        item.solicitanteRol ===
+          "coordinador"
+
+        ||
+
+        item.solicitanteRol ===
+          "empleado"
+    );
+
+}
+
+  // ADMIN
+
+  else if (
+    rol === "admin"
+  ) {
+
+    datos = vacaciones;
+  }
+
   return (
-    <div className="card">
 
-      <h2>🏖️ Vacaciones</h2>
+    <div
+  className="sap-card sap-card-full"
+  style={{
+    width: "100%",
+    display: "block"
+  }}
+>
+      <h2>
+        Vacaciones
+      </h2>
 
-      {/* ✅ MENU */}
-      {rol === "empleado" ? (
-        <div style={{marginBottom:"15px"}}>
+      {vista ===
+        "vac_solicitar" && (
 
-          <button onClick={()=>setVista("crear")}>
+        <>
+
+          <h4>
+            Solicitud de vacaciones
+          </h4>
+
+          <input
+            type="date"
+            value={inicio}
+            onChange={(e) =>
+              setInicio(
+                e.target.value
+              )
+            }
+          />
+
+          <input
+            type="date"
+            value={fin}
+            onChange={(e) =>
+              setFin(
+                e.target.value
+              )
+            }
+            style={{
+              marginLeft:
+                "10px"
+            }}
+          />
+
+          <button
+            onClick={
+              solicitar
+            }
+            style={{
+              marginLeft:
+                "10px"
+            }}
+          >
             Solicitar
           </button>
 
-          <button onClick={()=>setVista("lista")} style={{marginLeft:"10px"}}>
-            Mis solicitudes
-          </button>
-
-        </div>
-      ) : (
-        <div style={{marginBottom:"15px"}}>
-          <button onClick={()=>setVista("lista")}>
-            Solicitudes empleados
-          </button>
-        </div>
-      )}
-
-      {/* ✅ FORMULARIO */}
-      {vista === "crear" && rol === "empleado" && (
-
-        <div className="card" style={{maxWidth:"400px"}}>
-
-          <h3>Solicitar Vacaciones</h3>
-
-          <input
-            className="input"
-            type="date"
-            value={fi}
-            onChange={e=>setFi(e.target.value)}
-          />
-
-          <br/><br/>
-
-          <input
-            className="input"
-            type="date"
-            value={ff}
-            onChange={e=>setFf(e.target.value)}
-          />
-
-          <br/><br/>
-
-          <button onClick={enviar}>
-            Enviar solicitud
-          </button>
-
-        </div>
+        </>
 
       )}
+{
+rol === "gerente" && (
 
-      {/* ✅ TABLA */}
-      {vista === "lista" && (
+<div>
 
-        <table>
+<h3>
+Vacaciones Empleados
+</h3>
 
-          <thead>
+{
+Object.values(
+
+datos
+.filter(
+ item =>
+ item.solicitanteRol ===
+ "empleado"
+ )
+.reduce(
+  (acc, item) => {
+
+   const grupo =
+    item.grupoNombre ||
+    "Sin Grupo";
+
+   if (!acc[grupo]) {
+    acc[grupo] = [];
+   }
+
+   acc[grupo].push(item);
+
+   return acc;
+
+  },
+  {}
+ )
+
+).map(
+ grupo => (
+
+ <div
+  key={
+   grupo[0]
+   ?.grupoNombre
+  }
+  className="sap-card"
+ >
+
+ <h4>
+ {
+  grupo[0]
+  ?.grupoNombre
+ }
+ </h4>
+
+ <ul>
+
+ {
+ grupo.map(
+  vac => (
+
+  <li
+  key={vac.id}
+>
+
+  {vac.nombre}
+  {" "}
+  {vac.apellido}
+
+  {" | "}
+
+  {vac.inicio}
+
+  {" a "}
+
+  {vac.fin}
+
+  {" | Estado: "}
+
+  {vac.estado}
+
+</li>
+  )
+ )
+ }
+
+ </ul>
+
+ </div>
+
+ )
+)
+
+}
+
+<h3>
+Vacaciones Coordinadores
+</h3>
+
+<ul>
+
+{
+datos
+.filter(
+ item =>
+ item.solicitanteRol ===
+ "coordinador"
+)
+.map(
+ item => (
+
+<li key={item.id}>
+
+  {item.nombre}
+  {" "}
+  {item.apellido}
+
+  {" | Grupo: "}
+
+  {item.grupoNombre}
+
+  {" | "}
+
+  {item.inicio}
+
+  {" a "}
+
+  {item.fin}
+
+  {" | Estado: "}
+
+  {item.estado}
+
+  {item.estado ===
+    "Pendiente Gerente" && (
+
+    <>
+
+      <button
+        style={{
+          marginLeft: "10px"
+        }}
+        onClick={() =>
+          actualizarEstado(
+            item.id,
+            "Aprobada"
+          )
+        }
+      >
+        Aprobar
+      </button>
+
+      <button
+        style={{
+          marginLeft: "5px"
+        }}
+        onClick={() =>
+          actualizarEstado(
+            item.id,
+            "Rechazada"
+          )
+        }
+      >
+        Rechazar
+      </button>
+
+    </>
+
+  )}
+
+</li>
+
+)
+)
+}
+
+</ul>
+
+</div>
+
+)
+}
+      {rol !== "gerente" && (
+
+<table className="table">
+
+        <thead>
+
+          <tr>
+
+            <th>
+              Usuario
+            </th>
+
+            {(rol !==
+              "empleado") && (
+              <>
+                <th>
+                  Nombre
+                </th>
+
+                <th>
+                  Apellido
+                </th>
+
+                <th>
+                  Grupo
+                </th>
+                <th>
+               Tipo
+              </th>
+              </>
+            )}
+
+            <th>
+              Inicio
+            </th>
+
+            <th>
+              Fin
+            </th>
+
+            <th>
+              Estado
+            </th>
+
+            {rol !==
+              "empleado" && (
+              <th>
+                Acciones
+              </th>
+            )}
+
+          </tr>
+
+        </thead>
+
+        <tbody>
+
+          {datos.length ===
+          0 ? (
+
             <tr>
-              <th>Usuario</th>
-              <th>Fechas</th>
-              <th>Estado</th>
-              {(rol !== "empleado") && <th>Acciones</th>}
+
+              <td colSpan="8">
+                No existen
+                solicitudes
+              </td>
+
             </tr>
-          </thead>
 
-          <tbody>
+          ) : (
 
-            {datos.map(v=>(
-              <tr key={v.id}>
+            datos.map(
+              (item) => (
 
-                <td>{v.usuario}</td>
+                <tr
+                  key={item.id}
+                >
 
-                <td>
-                  {v.fechaInicio} - {v.fechaFin}
-                </td>
-
-                <td style={{color:color(v.estado)}}>
-                  {v.estado}
-                </td>
-
-                {(rol !== "empleado") && (
                   <td>
-
-                    <button onClick={()=>aprobar(v.id)}>
-                      ✅
-                    </button>
-
-                    <button
-                      onClick={()=>rechazar(v.id)}
-                      style={{marginLeft:"5px", background:"red", color:"white"}}
-                    >
-                      ❌
-                    </button>
-
+                    {
+                      item.usuario
+                    }
                   </td>
-                )}
 
-              </tr>
-            ))}
+                  {(rol !==
+                    "empleado") && (
+                    <>
+                      <td>
+                        {
+                          item.nombre
+                        }
+                      </td>
 
-          </tbody>
+                      <td>
+                        {
+                          item.apellido
+                        }
+                      </td>
 
-        </table>
+                     <td>
+                    {
+                    item.grupoNombre
+                    }
+                    </td>
+                    <td>
+                   {item.solicitanteRol}
+                    </td>
+                    </>
+                  )}
 
-      )}
+                  <td>
+                    {
+                      item.inicio
+                    }
+                  </td>
 
+                  <td>
+                    {
+                      item.fin
+                    }
+                  </td>
+
+                 <td>
+
+  <span
+    style={{
+      fontWeight: "bold",
+      color:
+        item.estado === "Aprobada"
+          ? "green"
+          : item.estado === "Rechazada"
+          ? "red"
+          : item.estado === "Cancelada"
+          ? "gray"
+          : "orange"
+    }}
+  >
+    {item.estado}
+  </span>
+
+</td>
+
+                  {rol === "coordinador" &&
+ item.solicitanteRol === "empleado" &&
+ item.estado === "Pendiente" && (
+                    <td>
+
+                      <button
+                        onClick={() =>
+                          actualizarEstado(
+                            item.id,
+                            "Aprobada"
+                          )
+                        }
+                      >
+                        Aprobar
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          actualizarEstado(
+                            item.id,
+                            "Rechazada"
+                          )
+                        }
+                        style={{
+                          marginLeft:
+                            "5px"
+                        }}
+                      >
+                        Rechazar
+                      </button>
+
+                    </td>
+
+                  )}
+
+                  {rol ===
+                    "admin" && (
+
+                    <td>
+
+                      <button
+                        onClick={() =>
+                          actualizarEstado(
+                            item.id,
+                            "Cancelada"
+                          )
+                        }
+                      >
+                        Cancelar
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          eliminar(
+                            item.id
+                          )
+                        }
+                        style={{
+                          marginLeft:
+                            "5px"
+                        }}
+                      >
+                        Eliminar
+                      </button>
+
+                    </td>
+
+                  )}
+
+                </tr>
+
+              )
+            )
+
+          )}
+
+        </tbody>
+
+      </table>
+)}
     </div>
+
   );
+
 }

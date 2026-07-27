@@ -1,243 +1,173 @@
-/* ============================= */
-/* ✅ BASE GLOBAL */
-/* ============================= */
+:root {
+  --sap-blue: #0057d9;
+  --sap-gray: #f5f6f7;
+  --sap-border: #dfe3e8;
+  --text-dark: #202124;
+  --sidebar-width: 260px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  font-family: "Segoe UI", Arial, sans-serif;
+}
 
 body {
-  margin: 0;
-  background: #f8fafc;
-  color: #1f2937;
-  font-family: system-ui, Arial;
+  background: var(--sap-gray);
 }
 
-/* ============================= */
-/* ✅ LAYOUT APP */
-/* ============================= */
+/* TEMAS */
 
-.app {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
+.dashboard.light {
+  background: #f5f6f7;
+  color: #202124;
 }
 
-/* ============================= */
-/* ✅ HEADER */
-/* ============================= */
+.dashboard.dark {
+  background: #202124;
+  color: white;
+}
+
+/* HEADER */
 
 .header {
-  height: 56px;
-  background: #1a73e8;
-  color: white;
+  height: 65px;
+  background: white;
+  border-bottom: 1px solid var(--sap-border);
+
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 15px;
+
+  padding: 0 24px;
 }
 
-/* ============================= */
-/* ✅ SIDEBAR */
-/* ============================= */
+.dashboard.dark .header {
+  background: #303134;
+}
+
+/* SIDEBAR */
 
 .sidebar {
-  width: 250px;
-  background: #f1f3f4;
-  border-right: 1px solid #ddd;
-  display: flex;
-  flex-direction: column;
+  width: var(--sidebar-width);
+  min-height: 100vh;
+  background: white;
+  border-right: 1px solid var(--sap-border);
+  transition: all .25s ease;
 }
 
-.sidebar-header {
-  padding: 15px;
-  font-weight: bold;
-  border-bottom: 1px solid #ddd;
+.dashboard.dark .sidebar {
+  background: #303134;
 }
 
-/* MENU */
-.sidebar-menu {
-  padding: 10px;
+/* LOGO */
+
+.sidebar-logo {
+  padding: 20px;
+  font-size: 20px;
+  font-weight: 700;
 }
 
-/* ITEM */
+/* ITEMS */
+
 .menu-item {
-  padding: 12px;
-  border-radius: 6px;
+  padding: 14px 18px;
+  margin: 6px;
+  border-radius: 10px;
   cursor: pointer;
-  color: #1f2937;
-  transition: all 0.2s ease;
+  transition: all .25s ease;
 }
 
 .menu-item:hover {
-  background: #e8f0fe;
-  color: #1a73e8;
+  background: #edf2ff;
+}
+
+.dashboard.dark .menu-item:hover {
+  background: #505255;
 }
 
 /* SUBMENU */
+
 .submenu {
   padding-left: 15px;
+  animation: fadeMenu .2s ease;
 }
 
-.sub-item {
-  padding: 8px;
-  font-size: 14px;
+.submenu div {
+  padding: 10px;
   cursor: pointer;
-  border-radius: 4px;
-  color: #374151;
-  transition: all 0.2s;
 }
 
-.sub-item:hover {
-  background: #dbeafe;
-  color: #1a73e8;
+.role-title {
+  font-size: 11px;
+  font-weight: bold;
+  color: #8b8f96;
+  margin-top: 10px;
 }
 
-/* ============================= */
-/* ✅ CONTENT */
-/* ============================= */
+/* MAIN */
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
 
 .content {
   flex: 1;
   padding: 20px;
-  background: #f8fafc;
 }
 
-/* ============================= */
-/* ✅ CARDS */
-/* ============================= */
+/* SAP HOME */
 
-.card {
-  background: white;
-  color: #1f2937;
-  padding: 15px;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-  transition: all 0.3s ease;
-}
-
-.card:hover {
-  transform: translateY(-2px);
-}
-
-/* ============================= */
-/* ✅ INPUT */
-/* ============================= */
-
-.input {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  transition: 0.2s;
-}
-
-.input:focus {
-  border-color: #1d4ed8;
-  box-shadow: 0 0 4px rgba(29, 78, 216, 0.5);
-}
-
-/* ============================= */
-/* ✅ BUTTONS */
-/* ============================= */
-
-button {
-  padding: 8px 12px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  background: #1d4ed8;
+.sap-banner {
+  background: var(--sap-blue);
   color: white;
-  transition: 0.2s;
+  padding: 40px;
+  border-radius: 18px;
+  margin-bottom: 20px;
 }
 
-button:hover {
-  background: #1e40af;
-  transform: translateY(-1px);
+.sap-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
 }
 
-/* ============================= */
-/* ✅ TABLE */
-/* ============================= */
-
-table {
-  width: 100%;
+.sap-card {
+  width: 280px;
+  min-height: 140px;
   background: white;
-  border-collapse: collapse;
-  margin-top: 10px;
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0,0,0,.08);
+
+  transition: all .25s ease;
 }
 
-th {
-  background: #f1f5f9;
-  text-align: left;
-  padding: 10px;
-  color: #111;
+.sap-card:hover {
+  transform: translateY(-3px);
 }
 
-td {
-  padding: 10px;
-  border-bottom: 1px solid #eee;
-  color: #111;
+.dashboard.dark .sap-card {
+  background: #303134;
 }
 
-/* ============================= */
-/* ✅ NOTIFICACIONES */
-/* ============================= */
+/* ANIMACIONES */
 
-.badge {
-  background: red;
-  color: white;
-  border-radius: 50%;
-  padding: 3px 6px;
-  font-size: 12px;
-}
-
-/* ============================= */
-/* ✅ ANIMACIONES */
-/* ============================= */
-
-.fade-in {
-  animation: fadeIn 0.5s ease forwards;
-}
-
-@keyframes fadeIn {
+@keyframes fadeMenu {
   from {
     opacity: 0;
-    transform: translateY(15px);
+    transform: translateY(-4px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-/* ============================= */
-/* ✅ DARK MODE */
-/* ============================= */
-
-.dark {
-  background: #0f172a;
-  color: white;
-}
-
-.dark .sidebar {
-  background: #1e293b;
-}
-
-.dark .content {
-  background: #0f172a;
-}
-
-.dark .card {
-  background: #1e293b;
-  color: white;
-}
-
-.dark table {
-  background: #1e293b;
-  color: white;
-}
-
-.dark th {
-  background: #334155;
-}
-
-.dark td {
-  color: white;
 }

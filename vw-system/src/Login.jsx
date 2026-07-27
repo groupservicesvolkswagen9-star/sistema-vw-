@@ -3,159 +3,272 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword
 } from "firebase/auth";
+
 import { auth, db } from "./firebase";
 import { collection, addDoc } from "firebase/firestore";
 
 export default function Login({ setUser }) {
 
-  const [email,setEmail] = useState("");
-  const [pass,setPass] = useState("");
-  const [modo,setModo] = useState("login"); // login | registro
+  const [email, setEmail] = useState("");
+  const [pass, setPass] = useState("");
+  const [crear, setCrear] = useState(false);
 
-  //////////////////////////////////////////////////////
-  // ✅ LOGIN
-  //////////////////////////////////////////////////////
-  const login = async ()=>{
-    try{
-      const cred = await signInWithEmailAndPassword(auth,email,pass);
-      setUser(cred.user);
-    }catch(err){
-      alert("Error de login");
-    }
+  // ✅ REGISTRO campos
+  const [nombre, setNombre] = useState("");
+  const [apellido, setApellido] = useState("");
+  const [dia, setDia] = useState("");
+  const [mes, setMes] = useState("");
+  const [anio, setAnio] = useState("");
+  const [genero, setGenero] = useState("");
+
+  // ✅ VALIDACIÓN VW
+  const validarVW = (correo) => {
+    return correo.toLowerCase().endsWith("@vw.com.mx");
   };
 
-  //////////////////////////////////////////////////////
+  // ✅ LOGIN
+  const login = async () => {
+
+  try {
+
+    if (!validarVW(email)) {
+      alert("Solo correos @vw.com.mx");
+      return;
+    }
+
+    const cred =
+      await signInWithEmailAndPassword(
+        auth,
+        email,
+        pass
+      );
+
+    setUser({
+      email: cred.user.email,
+      uid: cred.user.uid
+    });
+
+  } catch (error) {
+
+    console.log(error);
+
+    alert("Error en login");
+
+  }
+
+};
+
   // ✅ REGISTRO
-  //////////////////////////////////////////////////////
-  const registrar = async ()=>{
-    try{
-      const cred = await createUserWithEmailAndPassword(auth,email,pass);
+  const registrar = async () => {
 
-      // ✅ guardar en Firestore con rol
-      await addDoc(collection(db,"Usuarios"),{
-        email: email,
-        rol: "empleado"   // 👈 por default
-      });
+    try {
 
-      setUser(cred.user);
+      if (!validarVW(email)) {
+        alert("Solo correos @vw.com.mx");
+        return;
+      }
 
-    }catch(err){
+      const cred = await createUserWithEmailAndPassword(auth, email, pass);
+      const fechaNacimiento = `${anio}-${mes}-${dia}`;
+      await addDoc(
+  collection(db, "Usuarios"),
+  {
+  nombre,
+  apellido,
+  email,
+  fechaNacimiento,
+  genero,
+
+  rol: "empleado",
+
+  grupo: "",
+
+  activo: true,
+
+  fechaCreacion: new Date()
+}
+);
+
+      setUser({
+  email: cred.user.email,
+  nombre,
+  apellido,
+  grupo: ""
+});
+
+    } catch {
       alert("Error al registrar");
     }
   };
 
-  //////////////////////////////////////////////////////
-  // ✅ UI
-  //////////////////////////////////////////////////////
-  return (
-    <div style={{ display:"flex", height:"100vh" }}>
+  // ✅ ===== VISTA FACEBOOK REGISTRO =====
+  if (crear) {
+    return (
+      <div style={{
+        height: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        background: "#f0f2f5"
+      }}>
 
-      {/* ✅ IZQUIERDA */}
-      <div style={{ width:"50%" }}>
+        <div style={{
+          width: "400px",
+          background: "white",
+          padding: "20px",
+          borderRadius: "12px"
+        }}>
+
+          <h2 style={{ marginBottom: "10px" }}>
+            Crear cuenta
+          </h2>
+
+          {/* Nombre */}
+          <div style={{ display: "flex", gap: "10px" }}>
+            <input className="fb-input" placeholder="Nombre"
+              onChange={e => setNombre(e.target.value)} />
+
+            <input className="fb-input" placeholder="Apellido"
+              onChange={e => setApellido(e.target.value)} />
+          </div>
+
+          {/* Fecha */}
+          <div style={{ marginTop: "10px", display: "flex", gap: "10px" }}>
+            <input className="fb-input" placeholder="Día"
+              onChange={e => setDia(e.target.value)} />
+
+            <input className="fb-input" placeholder="Mes"
+              onChange={e => setMes(e.target.value)} />
+
+            <input className="fb-input" placeholder="Año"
+              onChange={e => setAnio(e.target.value)} />
+          </div>
+
+          {/* Género */}
+          <select className="fb-input" style={{ marginTop: "10px" }}
+            onChange={e => setGenero(e.target.value)}>
+
+            <option value="">Selecciona tu género</option>
+            <option>Masculino</option>
+            <option>Femenino</option>
+
+          </select>
+
+          {/* Correo */}
+          <input
+            className="fb-input"
+            style={{ marginTop: "10px" }}
+            placeholder="Correo electrónico @vw.com.mx"
+            onChange={e => setEmail(e.target.value)}
+          />
+
+          {/* Password */}
+          <input
+            type="password"
+            className="fb-input"
+            placeholder="Contraseña"
+            onChange={e => setPass(e.target.value)}
+          />
+
+          <button
+            className="fb-btn"
+            onClick={registrar}
+          >
+            Enviar
+          </button>
+
+          <button
+            className="fb-btn-secondary"
+            onClick={() => setCrear(false)}
+          >
+            Ya tengo una cuenta
+          </button>
+
+        </div>
+
+      </div>
+    );
+  }
+
+  // ✅ ===== LOGIN FACEBOOK STYLE =====
+  return (
+    <div style={{ display: "flex", height: "100vh" }}>
+
+      {/* IZQUIERDA (NO CAMBIAR) */}
+    <div style={{ width: "50%" }}>
         <img
           src="/bg.jpg"
           style={{
-            width:"100%",
-            height:"100%",
-            objectFit:"cover"
+            width: "100%",
+            height: "100%",
+            objectFit: "cover"
           }}
         />
       </div>
 
-      {/* ✅ DERECHA */}
+
+
+      {/* DERECHA */}
       <div style={{
-        width:"50%",
-        display:"flex",
-        justifyContent:"center",
-        alignItems:"center",
-        background:"#f5f5f5",
-        position:"relative"
+        width: "50%",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        background: "#f0f2f5"
       }}>
 
-        {/* ✅ LOGO */}
-        <div style={{
-          position:"absolute",
-          top:"20px",
-          left:"20px",
-          display:"flex",
-          alignItems:"center",
-          gap:"10px"
-        }}>
-          <img src="/logo.png" style={{width:"120px"}} />
-          <b style={{color:"#1d4ed8"}}>VW System</b>
-        </div>
+        <div style={{ width: "350px" }}>
 
-        {/* ✅ FORM */}
-        <div className="card fade-in"
-          style={{
-            padding:"30px",
-            width:"320px"
-          }}
-        >
-
-          <h2 style={{textAlign:"center", marginBottom:"20px"}}>
-            {modo === "login" ? "Iniciar sesión" : "Crear cuenta"}
+          <h2 style={{ textAlign: "center" }}>
+            Iniciar sesión en VWGSM
           </h2>
 
           <input
-            className="input"
-            placeholder="Correo"
-            value={email}
-            onChange={(e)=>setEmail(e.target.value)}
-            style={{width:"100%", marginBottom:"10px"}}
+            className="fb-input"
+            placeholder="Correo electrónico o número de celular"
+            onChange={e => setEmail(e.target.value)}
           />
 
           <input
-            type="password"
-            className="input"
-            placeholder="Contraseña"
-            value={pass}
-            onChange={(e)=>setPass(e.target.value)}
-            style={{width:"100%", marginBottom:"15px"}}
-          />
+  type="password"
+  className="fb-input"
+  placeholder="Contraseña"
+  onChange={(e) =>
+    setPass(e.target.value)
+  }
+  onKeyDown={(e) => {
 
-          {/* ✅ BOTÓN PRINCIPAL */}
-          {modo === "login" ? (
-            <button onClick={login} style={{width:"100%", background:"#1d4ed8", color:"white"}}>
-              Entrar
-            </button>
-          ) : (
-            <button onClick={registrar} style={{width:"100%", background:"#16a34a", color:"white"}}>
-              Registrarse
-            </button>
-          )}
+    if (e.key === "Enter") {
 
-          {/* ✅ CAMBIO DE MODO */}
-          <p style={{marginTop:"10px", textAlign:"center"}}>
+      login();
 
-            {modo === "login" ? (
-              <>
-                ¿No tienes cuenta?{" "}
-                <span
-                  style={{color:"#1d4ed8", cursor:"pointer"}}
-                  onClick={()=>setModo("registro")}
-                >
-                  Crear cuenta
-                </span>
-              </>
-            ) : (
-              <>
-                ¿Ya tienes cuenta?{" "}
-                <span
-                  style={{color:"#1d4ed8", cursor:"pointer"}}
-                  onClick={()=>setModo("login")}
-                >
-                  Iniciar sesión
-                </span>
-              </>
-            )}
+    }
 
+  }}
+/>
+
+          <button className="fb-btn" onClick={login}>
+            Iniciar sesión
+          </button>
+
+          <p style={{ textAlign: "center" }}>
+            Bienvenido
+          </p>
+
+          <button
+            className="fb-btn-secondary"
+            onClick={() => setCrear(true)}
+          >
+            Crear cuenta nueva
+          </button>
+
+          <p style={{ textAlign: "center", marginTop: "10px" }}>
+            VOLKSWAGEN GROUP SERVICES MEXICO
           </p>
 
         </div>
 
       </div>
-
     </div>
   );
 }

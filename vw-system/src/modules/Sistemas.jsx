@@ -1,148 +1,329 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+
+import {
+  collection,
+  addDoc,
+  getDocs
+} from "firebase/firestore";
+
 import { db } from "../firebase";
-import { collection, addDoc, getDocs, updateDoc, doc } from "firebase/firestore";
 
-export default function Sistemas({ user, rol }) {
+export default function Sistemas({
+  rol,
+  user,
+  vista
+}) {
 
-  const [nombre,setNombre] = useState("");
-  const [lista,setLista] = useState([]);
+  const [nombreSistema, setNombreSistema] =
+    useState("");
 
-  //////////////////////////////////////////////////////
-  // ✅ CARGAR DATOS
-  //////////////////////////////////////////////////////
-  const cargar = async ()=>{
-    const snap = await getDocs(collection(db,"sistemas"));
+  const [numeroParte, setNumeroParte] =
+    useState("");
 
-    const arr = [];
-    snap.forEach(d=>{
-      arr.push({ id:d.id, ...d.data() });
-    });
+  const [sistemas, setSistemas] =
+    useState([]);
 
-    setLista(arr);
-  };
-
-  useEffect(()=>{
+  useEffect(() => {
     cargar();
-  },[]);
+  }, []);
 
-  //////////////////////////////////////////////////////
-  // ✅ EMPLEADO AGREGA SISTEMA
-  //////////////////////////////////////////////////////
-  const agregar = async ()=>{
-    if(!nombre) return;
+  const cargar = async () => {
 
-    await addDoc(collection(db,"sistemas"),{
-      usuario:user.email,
-      sistema:nombre,
-      estado:"lo necesita"   // 👈 según Excel
-    });
+    try {
 
-    setNombre("");
-    cargar();
-  };
+      const snap = await getDocs(
+        collection(db, "Sistemas")
+      );
 
-  //////////////////////////////////////////////////////
-  // ✅ CAMBIAR ESTADO (COORDINADOR / ADMIN)
-  //////////////////////////////////////////////////////
-  const cambiarEstado = async (id,estado)=>{
-    await updateDoc(doc(db,"sistemas",id),{
-      estado
-    });
+      const lista = snap.docs.map(
+        (doc) => ({
+          id: doc.id,
+          ...doc.data()
+        })
+      );
 
-    cargar();
-  };
+      setSistemas(lista);
 
-  //////////////////////////////////////////////////////
-  // ✅ FILTRO POR ROL
-  //////////////////////////////////////////////////////
-  const datosFiltrados = lista.filter(s=>{
-    if(rol === "coordinador" || rol === "admin"){
-      return true;
+    } catch (error) {
+
+      console.error(error);
+
     }
-    return s.usuario === user.email;
-  });
 
-  //////////////////////////////////////////////////////
-  // ✅ UI
-  //////////////////////////////////////////////////////
+  };
+
+  const guardarSistema = async () => {
+
+    try {
+
+      if (
+        !nombreSistema.trim() ||
+        !numeroParte.trim()
+      ) {
+
+        alert(
+          "Completa todos los campos"
+        );
+
+        return;
+
+      }
+
+      await addDoc(
+        collection(
+          db,
+          "Sistemas"
+        ),
+        {
+          usuario:
+            user?.email || "",
+
+          nombre:
+            user?.nombre || "",
+
+          apellido:
+            user?.apellido || "",
+
+          grupo:
+            user?.grupo || "",
+
+          sistema:
+            nombreSistema,
+
+          numeroParte,
+
+          estatus:
+            "En revisión",
+
+          fecha:
+            new Date()
+              .toISOString()
+        }
+      );
+
+      setNombreSistema("");
+      setNumeroParte("");
+
+      await cargar();
+
+      alert(
+        "Sistema registrado"
+      );
+
+    } catch (error) {
+
+      console.error(error);
+
+      alert(
+        "Error al registrar sistema"
+      );
+
+    }
+
+  };
+
+  let listaMostrar = sistemas;
+
+  // EMPLEADO
+  if (rol === "empleado") {
+
+    listaMostrar =
+      sistemas.filter(
+        (item) =>
+          item.usuario ===
+          user?.email
+      );
+
+  }
+
+  // COORDINADOR
+  else if (
+    rol === "coordinador"
+  ) {
+
+    listaMostrar =
+      sistemas.filter(
+        (item) =>
+          item.grupo ===
+          user?.grupo
+      );
+
+  }
+
+  // ADMIN
+  else if (
+    rol === "admin"
+  ) {
+
+    listaMostrar =
+      sistemas;
+
+  }
+
   return (
-    <div className="card">
 
-      <h2>🖥️ Sistemas</h2>
+    <div
+  className="sap-card sap-card-full"
+  style={{
+    width: "100%",
+    display: "block"
+  }}
+>
+      <h2>
+        Sistemas
+      </h2>
 
-      {/* ✅ SOLO EMPLEADO AGREGA */}
-      {rol === "empleado" && (
-        <div style={{marginBottom:"15px"}}>
+      {rol === "empleado" &&
+        vista !== "mis_sistemas" && (
+
+        <>
+
           <input
-            className="input"
+            className="fb-input"
+            value={nombreSistema}
             placeholder="Nombre del sistema"
-            value={nombre}
-            onChange={(e)=>setNombre(e.target.value)}
+            onChange={(e) =>
+              setNombreSistema(
+                e.target.value
+              )
+            }
           />
 
-          <button onClick={agregar} style={{marginLeft:"10px"}}>
-            Agregar sistema
+          <input
+            className="fb-input"
+            value={numeroParte}
+            placeholder="Número de parte"
+            onChange={(e) =>
+              setNumeroParte(
+                e.target.value
+              )
+            }
+          />
+
+          <button
+            className="fb-btn"
+            onClick={
+              guardarSistema
+            }
+          >
+            Registrar sistema
           </button>
-        </div>
+
+        </>
+
       )}
 
-      {/* ✅ TABLA EMPRESA */}
-      <table>
+      <table className="table">
 
         <thead>
-          <tr>
-            <th>Usuario</th>
-            <th>Sistema</th>
-            <th>Estado</th>
 
-            {(rol === "coordinador" || rol === "admin") && (
-              <th>Acción</th>
+          <tr>
+
+            <th>Correo</th>
+
+            {(rol !== "empleado" ||
+              vista === "mis_sistemas") && (
+              <>
+                <th>Nombre</th>
+                <th>Apellido</th>
+                <th>Grupo</th>
+              </>
             )}
 
+            <th>Sistema</th>
+
+            <th>
+              Número Parte
+            </th>
+
+            <th>
+              Estatus
+            </th>
+
+            <th>
+              Fecha
+            </th>
+
           </tr>
+
         </thead>
 
         <tbody>
 
-          {datosFiltrados.map(s=>(
-            <tr key={s.id}>
+          {listaMostrar.length === 0 ? (
 
-              <td>{s.usuario}</td>
+            <tr>
 
-              <td>{s.sistema}</td>
-
-              <td style={{
-                color:
-                  s.estado === "aprobado" ? "green" :
-                  s.estado === "en proceso" ? "orange" :
-                  "red"
-              }}>
-                {s.estado}
+              <td colSpan="8">
+                No existen sistemas
+                registrados
               </td>
 
-              {/* ✅ CAMBIO DE ESTADO */}
-              {(rol === "coordinador" || rol === "admin") && (
-                <td>
-
-                  <select
-                    value={s.estado}
-                    onChange={(e)=>cambiarEstado(s.id,e.target.value)}
-                  >
-                    <option value="lo necesita">Lo necesita</option>
-                    <option value="en proceso">En proceso</option>
-                    <option value="aprobado">Aprobado</option>
-                  </select>
-
-                </td>
-              )}
-
             </tr>
-          ))}
+
+          ) : (
+
+            listaMostrar.map(
+              (item) => (
+
+                <tr
+                  key={item.id}
+                >
+
+                  <td>
+                    {item.usuario}
+                  </td>
+
+                  {(rol !== "empleado" ||
+                    vista === "mis_sistemas") && (
+                    <>
+                      <td>
+                        {item.nombre || ""}
+                      </td>
+
+                      <td>
+                        {item.apellido || ""}
+                      </td>
+
+                      <td>
+                        {item.grupo || ""}
+                      </td>
+                    </>
+                  )}
+
+                  <td>
+                    {item.sistema}
+                  </td>
+
+                  <td>
+                    {item.numeroParte}
+                  </td>
+
+                  <td>
+                    {item.estatus}
+                  </td>
+
+                  <td>
+                    {item.fecha
+                      ? new Date(
+                          item.fecha
+                        ).toLocaleDateString()
+                      : ""}
+                  </td>
+
+                </tr>
+
+              )
+            )
+
+          )}
 
         </tbody>
 
       </table>
 
     </div>
+
   );
+
 }

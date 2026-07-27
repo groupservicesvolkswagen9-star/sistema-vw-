@@ -1,175 +1,496 @@
 import { useEffect, useState } from "react";
-import { db } from "../firebase";
+
 import {
   collection,
-  onSnapshot,
-  updateDoc,
-  doc,
-  addDoc
+  addDoc,
+  getDocs,
+  deleteDoc,
+  doc
 } from "firebase/firestore";
 
-export default function Notificaciones({ user, rol }) {
+import { db } from "../firebase";
 
-  const [notis,setNotis] = useState([]);
-  const [open,setOpen] = useState(false);
-  const [mensaje,setMensaje] = useState("");
+export default function Notificaciones({
+  rol,
+  user
+}) {
 
-  /////////////////////////////////////////////////////
-  // ✅ TIEMPO REAL SOLO DEL USUARIO
-  /////////////////////////////////////////////////////
-  useEffect(()=>{
-    const unsub = onSnapshot(collection(db,"notificaciones"),(snap)=>{
+  const [titulo, setTitulo] =
+    useState("");
 
-      const arr = [];
+  const [mensaje, setMensaje] =
+    useState("");
 
-      snap.forEach(d=>{
-        const data = {id:d.id,...d.data()};
+  const [destino, setDestino] =
+    useState("empleado");
 
-        // ✅ SOLO MIS NOTIFICACIONES
-        if(data.para === user.email){
-          arr.push(data);
-        }
-      });
+  const [grupo, setGrupo] =
+    useState("");
 
-      setNotis(arr);
+  const [grupos, setGrupos] =
+    useState([]);
 
-    });
+  const [fechaProgramada,
+    setFechaProgramada] =
+    useState("");
 
-    return ()=>unsub();
-  },[user]);
+  const [notificaciones,
+    setNotificaciones] =
+    useState([]);
 
-  /////////////////////////////////////////////////////
-  // ✅ CONTADOR
-  /////////////////////////////////////////////////////
-  const unread = notis.filter(n=>!n.leido).length;
+  const cargar = async () => {
 
-  /////////////////////////////////////////////////////
-  // ✅ MARCAR LEIDAS (OPTIMIZADO)
-  /////////////////////////////////////////////////////
-  const marcar = async ()=>{
-    const pendientes = notis.filter(n=>!n.leido);
+    try {
 
-    for(const n of pendientes){
-      await updateDoc(doc(db,"notificaciones",n.id),{
-        leido:true
-      });
+      const gruposSnap =
+        await getDocs(
+          collection(
+            db,
+            "Grupos"
+          )
+        );
+
+      const listaGrupos =
+        gruposSnap.docs.map(
+          doc => ({
+            id: doc.id,
+            ...doc.data()
+          })
+        );
+
+      setGrupos(
+        listaGrupos
+      );
+
+      const snap =
+        await getDocs(
+          collection(
+            db,
+            "Notificaciones"
+          )
+        );
+
+      const hoy =
+        new Date();
+
+      const lista =
+        snap.docs
+          .map((doc) => ({
+            id: doc.id,
+            ...doc.data()
+          }))
+          .filter((item) => {
+
+            if (
+              item.fechaProgramada
+            ) {
+
+              const fechaNotif =
+                new Date(
+                  item.fechaProgramada
+                );
+
+              if (
+                fechaNotif > hoy
+              ) {
+                return false;
+              }
+            }
+
+            // ADMIN
+
+            if (
+              rol === "admin"
+            ) {
+
+              return true;
+
+            }
+
+            // COORDINADOR
+
+            if (
+              rol ===
+              "coordinador"
+            ) {
+
+              return (
+
+                item.destino ===
+                  "coordinador" ||
+
+                item.destino ===
+                  "todos" ||
+
+                (
+                  item.destino ===
+                    "grupo" &&
+
+                  item.grupo ===
+                    user?.grupo
+                )
+
+              );
+
+            }
+
+            // EMPLEADO
+
+            if (
+              rol ===
+              "empleado"
+            ) {
+
+              return (
+
+                item.destino ===
+                  "empleado" ||
+
+                item.destino ===
+                  "todos" ||
+
+                (
+                  item.destino ===
+                    "grupo" &&
+
+                  item.grupo ===
+                    user?.grupo
+                )
+
+              );
+
+            }
+
+            return false;
+
+          });
+
+      setNotificaciones(
+        lista
+      );
+
+    } catch (error) {
+
+      console.error(error);
+
     }
   };
 
-  /////////////////////////////////////////////////////
-  // ✅ ENVIAR MENSAJE (COORDINADOR / ADMIN)
-  /////////////////////////////////////////////////////
-  const enviar = async ()=>{
+  useEffect(() => {
+    cargar();
+  }, []);
 
-    if(!mensaje) return;
+  const enviar = async () => {
 
-    await addDoc(collection(db,"notificaciones"),{
-      mensaje,
-      para: "todos", // puedes mejorar esto luego
-      leido:false,
-      fecha: new Date()
-    });
+    try {
 
-    setMensaje("");
+      if (
+        !titulo.trim() ||
+        !mensaje.trim()
+      ) {
+
+        alert(
+          "Completa los campos"
+        );
+
+        return;
+
+      }
+
+      await addDoc(
+        collection(
+          db,
+          "Notificaciones"
+        ),
+        {
+          titulo,
+          mensaje,
+          destino,
+
+          grupo:
+            destino ===
+            "grupo"
+              ? grupo
+              : "",
+
+          fechaProgramada,
+
+          creadoPor:
+            user?.email ||
+            rol,
+
+          fechaCreacion:
+            new Date()
+              .toISOString()
+        }
+      );
+
+      setTitulo("");
+      setMensaje("");
+      setFechaProgramada("");
+      setGrupo("");
+
+      await cargar();
+
+      alert(
+        "Notificación creada"
+      );
+
+    } catch (error) {
+
+      console.error(error);
+
+      alert(
+        "Error al crear notificación"
+      );
+
+    }
   };
+const eliminarNotificacion = async (id) => {
 
-  /////////////////////////////////////////////////////
-  // ✅ UI
-  /////////////////////////////////////////////////////
+  try {
+
+    await deleteDoc(
+      doc(
+        db,
+        "Notificaciones",
+        id
+      )
+    );
+
+    await cargar();
+
+  } catch (error) {
+
+    console.error(error);
+
+    alert(
+      "Error al eliminar notificación"
+    );
+
+  }
+
+};
   return (
-    <div style={{position:"relative"}}>
 
-      {/* 🔔 ICONO */}
+    <div className="sap-card">
+
+      <h2>
+        Notificaciones
+      </h2>
+
+      {(rol === "admin" ||
+        rol ===
+          "coordinador") && (
+
+        <>
+
+          <input
+            className="fb-input"
+            placeholder="Título"
+            value={titulo}
+            onChange={(e) =>
+              setTitulo(
+                e.target.value
+              )
+            }
+          />
+
+          <textarea
+            className="fb-input"
+            placeholder="Mensaje"
+            value={mensaje}
+            onChange={(e) =>
+              setMensaje(
+                e.target.value
+              )
+            }
+          />
+
+          <select
+            className="fb-input"
+            value={destino}
+            onChange={(e) =>
+              setDestino(
+                e.target.value
+              )
+            }
+          >
+
+            <option value="empleado">
+              Empleados
+            </option>
+
+            <option value="coordinador">
+              Coordinadores
+            </option>
+
+            <option value="todos">
+              Todos
+            </option>
+
+            <option value="grupo">
+              Grupo
+            </option>
+
+          </select>
+
+          {destino ===
+            "grupo" && (
+
+            <select
+              className="fb-input"
+              value={grupo}
+              onChange={(e) =>
+                setGrupo(
+                  e.target.value
+                )
+              }
+            >
+
+              <option value="">
+                Seleccionar grupo
+              </option>
+
+              {grupos.map(
+                (grupoItem) => (
+
+                <option
+                  key={
+                    grupoItem.id
+                  }
+                  value={
+                    grupoItem.nombreGrupo
+                  }
+                >
+                  {
+                    grupoItem.nombreGrupo
+                  }
+                </option>
+
+              ))}
+
+            </select>
+
+          )}
+
+          <input
+            type="date"
+            className="fb-input"
+            value={
+              fechaProgramada
+            }
+            onChange={(e) =>
+              setFechaProgramada(
+                e.target.value
+              )
+            }
+          />
+
+          <button
+            className="fb-btn"
+            onClick={enviar}
+          >
+            Enviar notificación
+          </button>
+
+        </>
+
+      )}
+
       <div
-        onClick={()=>{
-          setOpen(!open);
-          marcar();
-        }}
         style={{
-          cursor:"pointer",
-          position:"relative",
-          fontSize:"20px"
+          marginTop: "20px"
         }}
       >
-        🔔
 
-        {unread > 0 && (
-          <span style={{
-            position:"absolute",
-            top:"-5px",
-            right:"-10px",
-            background:"red",
-            color:"white",
-            borderRadius:"50%",
-            padding:"3px 6px",
-            fontSize:"12px"
-          }}>
-            {unread}
-          </span>
+        {notificaciones.length ===
+        0 ? (
+
+          <p>
+            No hay notificaciones.
+          </p>
+
+        ) : (
+
+          notificaciones.map(
+            (item) => (
+
+              <div
+                key={item.id}
+                className="sap-card"
+                style={{
+                  marginTop:
+                    "10px"
+                }}
+              >
+
+                <h4>
+                  {item.titulo}
+                </h4>
+
+                <p>
+                  {item.mensaje}
+                </p>
+
+                <small>
+                  Destino:
+                  {" "}
+                  {item.destino}
+                </small>
+
+                {item.grupo && (
+                  <>
+                    <br />
+                    <small>
+                      Grupo:
+                      {" "}
+                      {item.grupo}
+                    </small>
+                  </>
+                )}
+
+                <br />
+
+                <small>
+                  Fecha:
+                  {" "}
+                  {item.fechaProgramada ||
+                    "Inmediata"}
+                </small>
+                  {(rol === "admin" || rol === "coordinador")&& (
+
+  <button
+    onClick={() =>
+      eliminarNotificacion(
+        item.id
+      )
+    }
+    style={{
+      background: "#d32f2f",
+      color: "white",
+      border: "none",
+      padding: "5px 10px",
+      borderRadius: "5px",
+      marginTop: "5px",
+      cursor: "pointer"
+    }}
+  >
+    Eliminar
+  </button>
+
+)}
+              </div>
+
+            )
+          )
+
         )}
 
       </div>
 
-      {/* 📦 POPUP */}
-      {open && (
-        <div style={{
-          position:"absolute",
-          top:"35px",
-          right:"0",
-          width:"320px",
-          background:"white",
-          color:"#111",
-          boxShadow:"0 5px 15px rgba(0,0,0,0.3)",
-          borderRadius:"8px",
-          zIndex:999
-        }}>
-
-          <h4 style={{
-            padding:"10px",
-            borderBottom:"1px solid #ddd"
-          }}>
-            Notificaciones
-          </h4>
-
-          {/* ✅ MENSAJES */}
-          <div style={{maxHeight:"300px",overflowY:"auto"}}>
-            {notis.length === 0 && (
-              <p style={{padding:"10px"}}>Sin notificaciones</p>
-            )}
-
-            {notis.map(n=>(
-              <div key={n.id} style={{
-                padding:"10px",
-                borderBottom:"1px solid #eee",
-                background:n.leido ? "#fff" : "#e3f2fd"
-              }}>
-                {n.mensaje}
-              </div>
-            ))}
-          </div>
-
-          {/* ✅ ENVIAR SOLO COORDINADOR / ADMIN */}
-          {(rol === "coordinador" || rol === "admin") && (
-            <div style={{padding:"10px", borderTop:"1px solid #ddd"}}>
-
-              <input
-                className="input"
-                placeholder="Nuevo aviso"
-                value={mensaje}
-                onChange={e=>setMensaje(e.target.value)}
-                style={{width:"100%", marginBottom:"5px"}}
-              />
-
-              <button onClick={enviar}>
-                Enviar
-              </button>
-
-            </div>
-          )}
-
-        </div>
-      )}
-
     </div>
+
   );
+
 }

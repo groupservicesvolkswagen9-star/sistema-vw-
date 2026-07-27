@@ -1,11 +1,17 @@
 const express = require("express");
 const cors = require("cors");
+const multer = require("multer");
+const bucket = require("./storage");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
-
+const upload =
+  multer({
+    storage:
+      multer.memoryStorage()
+  });
 //////////////////////////////////////////////////////
 // ✅ TEST
 //////////////////////////////////////////////////////
@@ -38,6 +44,41 @@ app.post("/firmar", async (req,res)=>{
 
 });
 
+//////////////////////////////////////////////////////
+// TEST STORAGE
+//////////////////////////////////////////////////////
+
+app.get(
+  "/test-storage",
+  async (req, res) => {
+
+    try {
+
+      const archivo =
+        bucket.file(
+          "prueba.txt"
+        );
+
+      await archivo.save(
+        "Hola Google Cloud"
+      );
+
+      res.send(
+        "Archivo subido correctamente ✅"
+      );
+
+    } catch (error) {
+
+      console.error(error);
+
+      res.status(500).send(
+        error.message
+      );
+
+    }
+
+  }
+);
 //////////////////////////////////////////////////////
 const PORT = process.env.PORT || 3001;
 

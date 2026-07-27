@@ -1,122 +1,225 @@
 import { useState } from "react";
-import { signOut } from "firebase/auth";
-import { auth } from "./firebase";
 
-export default function Sidebar({ rol, setModulo, setSub, setUser }) {
+export default function Sidebar({
+  rol,
+  setMenu
+}) {
 
-  const [menuActivo,setMenuActivo] = useState("");
+  const [vacacionesOpen,
+    setVacacionesOpen] =
+    useState(false);
 
-  //////////////////////////////////////////////////////
-  // ✅ LOGOUT
-  //////////////////////////////////////////////////////
-  const logout = async ()=>{
-    await signOut(auth);
-    setUser(null);
-  };
-
-  //////////////////////////////////////////////////////
-  // ✅ MENÚ SEGÚN EXCEL
-  //////////////////////////////////////////////////////
-  const menu = {
-    empleado: {
-      vacaciones:["Solicitar","Lista"],
-      solicitudes:["Enviar","Formatos","Lista"],
-      reportes:["Enviar","Lista"],
-      sistemas:["Agregar","Lista"],
-      equipos:["Agregar","Lista"]
-    },
-    coordinador:{
-      vacaciones:["Aprobar"],
-      solicitudes:["Firmar","Ver"],
-      reportes:["Ver","Control"],
-      sistemas:["Lista"],
-      equipos:["Lista"],
-      avisos:["Enviar"]
-    },
-    admin:{
-      vacaciones:["Todo"],
-      solicitudes:["Todo"],
-      reportes:["Todo"],
-      sistemas:["Todo"],
-      equipos:["Todo"],
-      usuarios:["Ver","Agregar"]
-    }
-  };
-
-  //////////////////////////////////////////////////////
-  // ✅ UI
-  //////////////////////////////////////////////////////
   return (
+
     <div className="sidebar">
 
-      {/* 🔥 HEADER */}
-      <div className="sidebar-header">
-        <b>VW System</b>
+      <div className="sidebar-logo">
+
+  <img
+    src="/logo.png"
+    alt="Logo VW"
+    style={{
+      width: "140px",
+      height: "auto",
+      marginLeft: "-10px"
+    }}
+  />
+ 
+</div>
+      <div
+        className="menu-item"
+        onClick={() =>
+          setMenu("home")
+        }
+      >
+        🏠 Inicio
       </div>
 
-      {/* 🔥 MENU */}
-      <div className="sidebar-menu">
+      {/* VACACIONES */}
 
-        {Object.keys(menu[rol] || {}).map((item)=>(
+      <div
+        className="menu-item"
+        onClick={() =>
+          setVacacionesOpen(
+            !vacacionesOpen
+          )
+        }
+      >
+        🗓 Vacaciones
+      </div>
 
-          <div key={item}>
+      {vacacionesOpen && (
 
-            {/* ✅ MENU PRINCIPAL */}
-            <div
-              className="menu-item"
-              onClick={()=>{
-                setMenuActivo(item);
-                setModulo(item);     // 🔥 CLAVE
-                setSub("");          // reset sub
-              }}
-            >
-              {item}
-            </div>
+        <div className="submenu">
 
-            {/* ✅ SUBMENU */}
-            {menuActivo === item && (
-
-              <div className="submenu">
-
-                {menu[rol][item].map((sub)=>(
-
-                  <div
-                    key={sub}
-                    className="sub-item"
-                    onClick={()=>{
-                      setSub(sub);    // 🔥 CLAVE
-                      setModulo(item);
-                    }}
-                  >
-                    {sub}
-                  </div>
-
-                ))}
-
+          {rol === "empleado" && (
+            <>
+              <div
+                onClick={() =>
+                  setMenu(
+                    "vac_solicitar"
+                  )
+                }
+              >
+                Solicitar vacaciones
               </div>
 
-            )}
+              <div
+                onClick={() =>
+                  setMenu(
+                    "vac_mias"
+                  )
+                }
+              >
+                Mis vacaciones
+              </div>
+            </>
+          )}
 
-          </div>
+          {(
+            rol === "coordinador" ||
+             rol === "gerente"
+            ) && (
+            <>
+              <div
+                onClick={() =>
+                  setMenu(
+                    "vac_aprobar"
+                  )
+                }
+              >
+               {
+                rol === "gerente"
+                 ? "Vacaciones de mi gerencia"
+                  : "Vacaciones de mi grupo"
+                }
+              </div>
+            </>
+          )}
 
-        ))}
+          {rol === "admin" && (
+            <>
+              <div
+                onClick={() =>
+                  setMenu(
+                    "vac_admin"
+                  )
+                }
+              >
+                Administrar vacaciones
+              </div>
+            </>
+          )}
 
+        </div>
+
+      )}
+
+      <div
+        className="menu-item"
+        onClick={() =>
+          setMenu(
+            "solicitudes"
+          )
+        }
+      >
+        📄 Solicitudes
       </div>
 
-      {/* 🔥 LOGOUT */}
-      <div style={{padding:"10px"}}>
-        <button
-          onClick={logout}
-          style={{
-            width:"100%",
-            background:"#ea4335",
-            color:"white"
-          }}
+      <div
+        className="menu-item"
+        onClick={() =>
+          setMenu(
+            "reportes"
+          )
+        }
+      >
+        📊 Reportes
+      </div>
+
+      <div
+        className="menu-item"
+        onClick={() =>
+          setMenu(
+            "sistemas"
+          )
+        }
+      >
+        💻 Sistemas
+      </div>
+
+      <div
+        className="menu-item"
+        onClick={() =>
+          setMenu(
+            "equipos"
+          )
+        }
+      >
+        🖥 Equipos
+      </div>
+
+      {(
+  rol === "coordinador" ||
+  rol === "gerente" ||
+  rol === "admin"
+) && (
+        <div
+          className="menu-item"
+          onClick={() =>
+            setMenu(
+              "notificaciones"
+            )
+          }
         >
-          Cerrar sesión
-        </button>
-      </div>
+          🔔 Notificaciones
+        </div>
+
+      )}
+
+{rol === "admin" && (
+
+  <>
+
+    <div
+      className="menu-item"
+      onClick={() =>
+        setMenu(
+          "grupos"
+        )
+      }
+    >
+      👨‍👩‍👧‍👦 Grupos
+    </div>
+
+    <div
+      className="menu-item"
+      onClick={() =>
+        setMenu(
+          "gerencias"
+        )
+      }
+    >
+      🏢 Gerencias
+    </div>
+
+    <div
+      className="menu-item"
+      onClick={() =>
+        setMenu(
+          "usuarios"
+        )
+      }
+    >
+      👥 Usuarios
+    </div>
+
+  </>
+
+)}
 
     </div>
+
   );
+
 }

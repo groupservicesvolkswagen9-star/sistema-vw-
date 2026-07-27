@@ -1,160 +1,436 @@
 import { useEffect, useState } from "react";
-import { db } from "../firebase";
+
 import {
-  getDocs,
   collection,
-  addDoc,
+  getDocs,
   updateDoc,
   deleteDoc,
   doc
 } from "firebase/firestore";
 
+import { db } from "../firebase";
+
 export default function Usuarios({ rol }) {
 
-  const [users,setUsers] = useState([]);
-  const [nuevoEmail,setNuevoEmail] = useState("");
-  const [nuevoRol,setNuevoRol] = useState("empleado");
+  const [usuarios, setUsuarios] =
+    useState([]);
 
-  //////////////////////////////////////////////////////
-  // ✅ SOLO ADMIN
-  //////////////////////////////////////////////////////
-  if(rol !== "admin"){
-    return <h2>No autorizado</h2>;
-  }
+  const [grupos, setGrupos] =
+    useState([]);
 
-  //////////////////////////////////////////////////////
-  // ✅ CARGAR USUARIOS
-  //////////////////////////////////////////////////////
-  const cargar = async ()=>{
-    const snap = await getDocs(collection(db,"Usuarios"));
+  if (rol !== "admin") {
 
-    const arr=[];
-    snap.forEach(d=>{
-      arr.push({id:d.id,...d.data()});
-    });
+    return (
 
-    setUsers(arr);
-  };
+      <div className="sap-card">
 
-  useEffect(()=>{
-    cargar();
-  },[]);
+        <h2>Usuarios</h2>
 
-  //////////////////////////////////////////////////////
-  // ✅ AGREGAR USUARIO
-  //////////////////////////////////////////////////////
-  const agregar = async ()=>{
-    if(!nuevoEmail) return;
-
-    await addDoc(collection(db,"Usuarios"),{
-      email: nuevoEmail,
-      rol: nuevoRol
-    });
-
-    setNuevoEmail("");
-    setNuevoRol("empleado");
-
-    cargar();
-  };
-
-  //////////////////////////////////////////////////////
-  // ✅ CAMBIAR ROL
-  //////////////////////////////////////////////////////
-  const cambiarRol = async (id,rolNuevo)=>{
-    await updateDoc(doc(db,"Usuarios",id),{
-      rol:rolNuevo
-    });
-
-    cargar();
-  };
-
-  //////////////////////////////////////////////////////
-  // ✅ ELIMINAR USUARIO
-  //////////////////////////////////////////////////////
-  const eliminar = async (id)=>{
-    await deleteDoc(doc(db,"Usuarios",id));
-    cargar();
-  };
-
-  //////////////////////////////////////////////////////
-  // ✅ UI
-  //////////////////////////////////////////////////////
-  return (
-    <div className="card">
-
-      <h2>👥 Usuarios</h2>
-
-      {/* ✅ AGREGAR USUARIO */}
-      <div style={{marginBottom:"15px"}}>
-
-        <input
-          className="input"
-          placeholder="Correo"
-          value={nuevoEmail}
-          onChange={e=>setNuevoEmail(e.target.value)}
-        />
-
-        <select
-          value={nuevoRol}
-          onChange={e=>setNuevoRol(e.target.value)}
-          style={{marginLeft:"5px"}}
-        >
-          <option value="empleado">Empleado</option>
-          <option value="coordinador">Coordinador</option>
-          <option value="admin">Admin</option>
-        </select>
-
-        <button onClick={agregar} style={{marginLeft:"5px"}}>
-          Agregar
-        </button>
+        <p>
+          No tienes acceso.
+        </p>
 
       </div>
 
-      {/* ✅ TABLA */}
-      <table>
+    );
+  }
 
-        <thead>
+  const cargar = async () => {
+
+    const usuariosSnap =
+      await getDocs(
+        collection(
+          db,
+          "Usuarios"
+        )
+      );
+
+    const listaUsuarios =
+      usuariosSnap.docs.map(
+        doc => ({
+          id: doc.id,
+          ...doc.data()
+        })
+      );
+      listaUsuarios.sort(
+  (a, b) => {
+
+    const orden = {
+      admin: 1,
+      gerente: 2,
+      coordinador: 3,
+      empleado: 4
+    };
+
+    return (
+      (orden[a.rol] || 99) -
+      (orden[b.rol] || 99)
+    );
+
+  }
+);
+    setUsuarios(
+      listaUsuarios
+    );
+
+    const gruposSnap =
+      await getDocs(
+        collection(
+          db,
+          "Grupos"
+        )
+      );
+
+    const listaGrupos =
+      gruposSnap.docs.map(
+        doc => ({
+          id: doc.id,
+          ...doc.data()
+        })
+      );
+
+    setGrupos(
+      listaGrupos
+    );
+  };
+
+  useEffect(() => {
+    cargar();
+  }, []);
+
+const cambiarRol = async (
+  id,
+  nuevoRol
+) => {
+
+  const datosActualizar = {
+    rol: nuevoRol
+  };
+
+  if (
+    nuevoRol !== "empleado" &&
+    nuevoRol !== "coordinador"
+  ) {
+
+    datosActualizar.grupoFirestoreId = "";
+    datosActualizar.grupoId = "";
+    datosActualizar.grupoNombre = "";
+
+  }
+
+  await updateDoc(
+    doc(
+      db,
+      "Usuarios",
+      id
+    ),
+    datosActualizar
+  );
+
+  cargar();
+
+};
+const cambiarGrupo = async (
+  id,
+  grupoFirestoreId
+) => {
+
+  if (!grupoFirestoreId) {
+
+    await updateDoc(
+      doc(
+        db,
+        "Usuarios",
+        id
+      ),
+      {
+        grupoFirestoreId: "",
+        grupoId: "",
+        grupoNombre: ""
+      }
+    );
+
+    cargar();
+    return;
+
+  }
+const usuarioActual =
+  usuarios.find(
+    usuario =>
+      usuario.id === id
+  );
+
+if (
+  usuarioActual?.rol ===
+  "coordinador"
+) {
+
+  const coordinadorExistente =
+    usuarios.find(
+      usuario =>
+        usuario.id !== id &&
+        usuario.rol ===
+          "coordinador" &&
+        usuario.grupoFirestoreId ===
+          grupoFirestoreId
+    );
+
+  if (coordinadorExistente) {
+
+   alert(
+  `El grupo ya tiene asignado a ${coordinadorExistente.nombre} ${coordinadorExistente.apellido}`
+);
+
+    return;
+
+  }
+
+}
+  const grupoSeleccionado =
+    grupos.find(
+      grupo =>
+        grupo.id ===
+        grupoFirestoreId
+    );
+
+  await updateDoc(
+    doc(
+      db,
+      "Usuarios",
+      id
+    ),
+    {
+      grupoFirestoreId,
+      grupoId:
+        grupoSeleccionado?.grupoId || "",
+      grupoNombre:
+        grupoSeleccionado?.nombreGrupo || ""
+    }
+  );
+
+  cargar();
+
+};
+
+const eliminarUsuario =
+  async (id) => {
+
+    const confirmar =
+      window.confirm(
+        "¿Eliminar usuario?"
+      );
+
+    if (!confirmar)
+      return;
+
+    await deleteDoc(
+      doc(
+        db,
+        "Usuarios",
+        id
+      )
+    );
+
+    cargar();
+
+  };
+
+  return (
+
+    <div className="sap-card sap-card-full">
+      <h2>
+        Administración de Usuarios
+      </h2>
+
+     <div
+  style={{
+    overflowX: "auto"
+  }}
+>
+
+  <table
+    className="table"
+    style={{
+      width: "100%",
+      
+    }}
+  >
+
+    <thead>
+
           <tr>
-            <th>Email</th>
-            <th>Rol</th>
-            <th>Acciones</th>
+
+            <th>
+              Nombre
+            </th>
+
+            <th>
+              Email
+            </th>
+
+            <th>
+              Rol
+            </th>
+
+            <th>Grupo</th>
+            <th>ID Grupo</th>
+            <th>ID Firestore</th>
+            <th>
+              Acciones
+            </th>
+
           </tr>
+
         </thead>
 
         <tbody>
 
-          {users.map(u=>(
-            <tr key={u.id}>
+          {usuarios.map(
+            usuario => (
 
-              <td>{u.email}</td>
+            <tr
+              key={usuario.id}
+            >
 
               <td>
-                <select
-                  value={u.rol}
-                  onChange={(e)=>cambiarRol(u.id,e.target.value)}
+
+                {usuario.nombre}
+                {" "}
+                {usuario.apellido}
+
+              </td>
+
+              <td>
+                {usuario.email}
+              </td>
+
+              <td>
+
+                  <select
+                  value={
+                  usuario.rol || "empleado"
+                  }
+
+                  onChange={(e)=>
+                    cambiarRol(
+                      usuario.id,
+                      e.target.value
+                    )
+                  }
                 >
-                  <option value="empleado">Empleado</option>
-                  <option value="coordinador">Coordinador</option>
-                  <option value="admin">Admin</option>
+
+                  <option value="empleado">
+  Empleado
+</option>
+
+<option value="coordinador">
+  Coordinador
+</option>
+
+<option value="gerente">
+  Gerente
+</option>
+
+<option value="admin">
+  Admin
+</option>
                 </select>
+
               </td>
 
               <td>
-                <button
-                  onClick={()=>eliminar(u.id)}
-                  style={{background:"red", color:"white"}}
-                >
-                  Eliminar
-                </button>
-              </td>
+
+  {(
+  usuario.rol === "empleado" ||
+  usuario.rol === "coordinador"
+) ? (
+    <>
+      <div
+        style={{
+          fontSize: "12px",
+          marginBottom: "5px"
+        }}
+      >
+        {usuario.grupoNombre || "Sin grupo"}
+      </div>
+
+      <select
+       value={
+  usuario.grupoFirestoreId || ""}
+        onChange={(e) =>
+          cambiarGrupo(
+            usuario.id,
+            e.target.value
+          )
+        }
+      >
+        <option value="">
+          Seleccionar grupo
+        </option>
+
+        {grupos.map((grupo) => (
+
+          <option
+  key={grupo.id}
+  value={grupo.id}
+>
+  {grupo.grupoId} - {grupo.nombreGrupo}
+</option>
+
+        ))}
+
+      </select>
+
+    </>
+
+  ) : (
+    "-"
+  )}
+
+</td>
+<td
+  style={{
+    maxWidth: "250px",
+    wordBreak: "break-all",
+    fontSize: "12px"
+  }}
+>
+  {usuario.grupoId || "-"}
+</td>
+
+<td
+  style={{
+    maxWidth: "250px",
+    wordBreak: "break-all",
+    fontSize: "11px"
+  }}
+>
+  {usuario.grupoFirestoreId || "-"}
+</td>
+
+<td>
+  <button
+    onClick={() =>
+      eliminarUsuario(
+        usuario.id
+      )
+    }
+  >
+    Eliminar
+  </button>
+</td>
 
             </tr>
+
           ))}
 
         </tbody>
 
-      </table>
+        </table>
 
     </div>
+
+    </div>
+
   );
 }
