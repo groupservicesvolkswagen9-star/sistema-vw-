@@ -235,6 +235,37 @@ app.get(
 
   }
 );
+app.get(
+  "/test-generar-documentos",
+  async (req, res) => {
+
+    const reporteId =
+      "S5u69j05F57EjHbIqtY4";
+
+    const okrId =
+      "PON_AQUI_EL_OKRID";
+
+    const reporteDoc =
+      await db
+        .collection("ReporteMensual")
+        .doc(reporteId)
+        .get();
+
+    const okrDoc =
+      await db
+        .collection("OKR")
+        .doc(okrId)
+        .get();
+
+    res.json({
+      reporte:
+        reporteDoc.data(),
+      okr:
+        okrDoc.data()
+    });
+
+  }
+);
 //////////////////////////////////////////////////////
 const PORT = process.env.PORT || 3001;
 
