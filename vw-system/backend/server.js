@@ -179,30 +179,29 @@ app.get(
           .limit(1)
           .get();
 
-     const doc =
-  snap.docs[0];
+      const documento =
+        snap.docs[0];
 
-res.json({
-  ok: true,
-  id: doc.id,
-  datos: doc.data()
-});
+      res.json({
+        ok: true,
+        id: documento.id,
+        datos:
+          documento.data()
+      });
 
     } catch (error) {
 
-      console.error(error);
-
       res.status(500)
-        .json({
-          ok: false,
-          error:
-            error.message
-        });
+      .json({
+        error:
+          error.message
+      });
 
     }
 
   }
 );
+
 //////////////////////////////////////////////////////
 const PORT = process.env.PORT || 3001;
 
