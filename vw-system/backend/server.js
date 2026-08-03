@@ -514,17 +514,7 @@ const imgOKR =
 
       pdf.moveDown();
 
-      pdf.image(
-        imgOKR,
-        {
-          fit: [
-            500,
-            350
-          ],
-          align:
-            "center"
-        }
-      );
+      
 
       //////////////////////////////////////////////////
       // PAGINA 5 KPI
