@@ -240,11 +240,10 @@ app.get(
   async (req, res) => {
 
     const reporteId =
-      "S5u69j05F57EjHbIqtY4";
+  "S5u69j05F57EjHbIqtY4";
 
-    const okrId =
-      "PON_AQUI_EL_OKRID";
-
+const okrId =
+  "5s8OqXC3fp3mu6PdqtyS";
     const reporteDoc =
       await db
         .collection("ReporteMensual")
