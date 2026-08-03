@@ -4,7 +4,8 @@ const multer = require("multer");
 const bucket = require("./storage");
 const PDFDocument =
   require("pdfkit");
-
+const { PassThrough } =
+  require("stream");
 const PptxGenJS =
   require("pptxgenjs");
 
@@ -236,37 +237,154 @@ app.get(
   }
 );
 app.get(
-  "/test-generar-documentos",
+  "/generar-pdf-prueba",
   async (req, res) => {
 
-    const reporteSnap =
-      await db
-        .collection(
-          "ReporteMensual"
+    try {
+
+      const reporteSnap =
+        await db
+          .collection(
+            "ReporteMensual"
+          )
+          .limit(1)
+          .get();
+
+      const okrSnap =
+        await db
+          .collection(
+            "OKR"
+          )
+          .limit(1)
+          .get();
+
+      const reporte =
+        reporteSnap.docs[0].data();
+
+      const okr =
+        okrSnap.docs[0].data();
+
+      const pdf =
+        new PDFDocument();
+
+      const buffers = [];
+
+      pdf.on(
+        "data",
+        buffers.push.bind(
+          buffers
         )
-        .limit(1)
-        .get();
+      );
 
-    const okrSnap =
-      await db
-        .collection(
-          "OKR"
-        )
-        .limit(1)
-        .get();
+      pdf.on(
+        "end",
+        async () => {
 
-    const reporte =
-      reporteSnap.docs[0]
-      ?.data();
+          const pdfBuffer =
+            Buffer.concat(
+              buffers
+            );
 
-    const okr =
-      okrSnap.docs[0]
-      ?.data();
+          const ruta =
+            `documentos/pdf/${reporte.anio}/${reporte.mes}/reporte-prueba.pdf`;
 
-    res.json({
-      reporte,
-      okr
-    });
+          await bucket
+            .file(ruta)
+            .save(pdfBuffer);
+
+          res.json({
+            ok: true,
+            ruta
+          });
+
+        }
+      );
+
+      pdf.fontSize(20)
+         .text(
+           "VOLKSWAGEN GROUP SERVICES"
+         );
+
+      pdf.moveDown();
+
+      pdf.fontSize(16)
+         .text(
+           "Reporte Mensual"
+         );
+
+      pdf.moveDown();
+
+      pdf.text(
+        `Mes: ${reporte.mes}`
+      );
+
+      pdf.text(
+        `Año: ${reporte.anio}`
+      );
+
+      pdf.text(
+        `Grupo: ${reporte.grupoNombre}`
+      );
+
+      pdf.text(
+        `Empleado: ${reporte.nombre} ${reporte.apellido}`
+      );
+
+      pdf.moveDown();
+
+      pdf.text(
+        `Logros: ${reporte.logros}`
+      );
+
+      pdf.text(
+        `Problemas: ${reporte.problemas}`
+      );
+
+      pdf.text(
+        `Acciones: ${reporte.acciones}`
+      );
+
+      pdf.moveDown();
+
+      pdf.text(
+        "OKRs"
+      );
+
+      okr.okrs.forEach(
+        (item, index) => {
+
+          pdf.text(
+            `${index + 1}. ${item.objetivo}`
+          );
+
+          pdf.text(
+            `KR: ${item.resultadoClave}`
+          );
+
+          pdf.text(
+            `Avance: ${item.avance}%`
+          );
+
+          pdf.moveDown();
+
+        }
+      );
+
+      pdf.end();
+
+    } catch (error) {
+
+      console.error(
+        error
+      );
+
+      res.status(500)
+        .json({
+          error:
+            error.message
+        });
+
+    }
 
   }
 );
