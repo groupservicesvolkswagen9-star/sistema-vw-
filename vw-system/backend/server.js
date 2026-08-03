@@ -340,7 +340,7 @@ const imgOKR =
         "#003366"
       );
 
-      pdf.image(
+      /*pdf.image(
         "./assets/logo.png",
         40,
         20,
@@ -348,7 +348,7 @@ const imgOKR =
           width: 100
         }
       );
-
+      */
       pdf.fillColor(
         "white"
       );
