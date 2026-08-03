@@ -3,8 +3,8 @@ const cors = require("cors");
 const multer = require("multer");
 const bucket = require("./storage");
 const {
-  graficaOKR,
-  graficaSemaforo
+  generarGraficaOKR,
+  generarGraficaSemaforo
 } = require("./graficas");
 const PDFDocument =
   require("pdfkit");
