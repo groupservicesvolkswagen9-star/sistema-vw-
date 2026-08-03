@@ -15,76 +15,179 @@ const chartCanvas =
       "white"
   });
 
+//////////////////////////////////////////////////////
+// GRAFICA OKR
+//////////////////////////////////////////////////////
+
 async function generarGraficaOKR(
   okrs
 ) {
 
-  const labels =
-    okrs.map(
-      item => item.objetivo
-    );
+  return await chartCanvas
+    .renderToBuffer({
 
-  const valores =
-    okrs.map(
-      item => item.avance
-    );
+      type: "bar",
 
-  const configuration = {
+      data: {
 
-    type: "bar",
+        labels:
+          okrs.map(
+            item =>
+              item.objetivo
+          ),
 
-    data: {
+        datasets: [
 
-      labels,
+          {
 
-      datasets: [
+            label:
+              "Avance OKR",
 
-        {
+            data:
+              okrs.map(
+                item =>
+                  item.avance
+              ),
 
-          label:
-            "Avance OKR",
+            backgroundColor:
+              "#003366"
 
-          data:
-            valores,
+          }
 
-          backgroundColor:
-            "#003366"
+        ]
 
-        }
+      },
 
-      ]
+      options: {
 
-    },
+        responsive:
+          false,
 
-    options: {
+        plugins: {
 
-      responsive:
-        false,
+          legend: {
 
-      scales: {
+            display:
+              true
 
-        y: {
+          }
 
-          beginAtZero:
-            true,
+        },
 
-          max:
-            100
+        scales: {
+
+          y: {
+
+            beginAtZero:
+              true,
+
+            max:
+              100
+
+          }
 
         }
 
       }
 
-    }
+    });
 
-  };
+}
+
+//////////////////////////////////////////////////////
+// GRAFICA SEMAFORO
+//////////////////////////////////////////////////////
+
+async function generarGraficaSemaforo(
+  okrs
+) {
+
+  const verdes =
+    okrs.filter(
+      item =>
+        item.avance >= 80
+    ).length;
+
+  const amarillos =
+    okrs.filter(
+      item =>
+        item.avance >= 50 &&
+        item.avance < 80
+    ).length;
+
+  const rojos =
+    okrs.filter(
+      item =>
+        item.avance < 50
+    ).length;
 
   return await chartCanvas
-    .renderToBuffer(
-      configuration
-    );
+    .renderToBuffer({
+
+      type: "pie",
+
+      data: {
+
+        labels: [
+
+          "Verde",
+          "Amarillo",
+          "Rojo"
+
+        ],
+
+        datasets: [
+
+          {
+
+            data: [
+
+              verdes,
+              amarillos,
+              rojos
+
+            ],
+
+            backgroundColor: [
+
+              "#28a745",
+              "#ffc107",
+              "#dc3545"
+
+            ]
+
+          }
+
+        ]
+
+      },
+
+      options: {
+
+        responsive:
+          false,
+
+        plugins: {
+
+          legend: {
+
+            position:
+              "bottom"
+
+          }
+
+        }
+
+      }
+
+    });
+
 }
 
 module.exports = {
-  generarGraficaOKR
+
+  generarGraficaOKR,
+
+  generarGraficaSemaforo
+
 };

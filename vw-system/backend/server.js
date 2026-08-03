@@ -3,10 +3,9 @@ const cors = require("cors");
 const multer = require("multer");
 const bucket = require("./storage");
 const {
-  generarGraficaOKR
-} = require(
-  "./graficas"
-);
+  graficaOKR,
+  graficaSemaforo
+} = require("./graficas");
 const PDFDocument =
   require("pdfkit");
 const { PassThrough } =
