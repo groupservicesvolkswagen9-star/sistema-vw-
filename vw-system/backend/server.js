@@ -341,7 +341,7 @@ const imgOKR =
       );
 
       pdf.image(
-        "./assets/logo-vwgs.png",
+        "./assets/logo.png",
         40,
         20,
         {
