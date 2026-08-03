@@ -1,18 +1,22 @@
 const admin = require("firebase-admin");
 
-console.log(
-  "FIREBASE_SERVICE_ACCOUNT:",
-  !!process.env.FIREBASE_SERVICE_ACCOUNT
-);
-
 const serviceAccount =
   JSON.parse(
-    process.env.FIREBASE_SERVICE_ACCOUNT
+    process.env
+      .FIREBASE_SERVICE_ACCOUNT
   );
 
-console.log(
-  "PROJECT:",
-  serviceAccount.project_id
-);
+admin.initializeApp({
+  credential:
+    admin.credential.cert(
+      serviceAccount
+    )
+});
 
-process.exit(0);
+const db =
+  admin.firestore();
+
+module.exports = {
+  admin,
+  db
+};
