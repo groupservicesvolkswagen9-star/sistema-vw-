@@ -179,11 +179,14 @@ app.get(
           .limit(1)
           .get();
 
-      res.json({
-        ok: true,
-        documentos:
-          snap.size
-      });
+     const doc =
+  snap.docs[0];
+
+res.json({
+  ok: true,
+  id: doc.id,
+  datos: doc.data()
+});
 
     } catch (error) {
 
