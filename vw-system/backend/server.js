@@ -3,8 +3,8 @@ const cors = require("cors");
 const multer = require("multer");
 const bucket = require("./storage");
 const {
-  generarGraficaOKR,
-  generarGraficaSemaforo
+  graficaOKR,
+  graficaSemaforo
 } = require("./graficas");
 const PDFDocument =
   require("pdfkit");
@@ -514,7 +514,17 @@ const imgOKR =
 
       pdf.moveDown();
 
-      
+      pdf.image(
+        imgOKR,
+        {
+          fit: [
+            500,
+            350
+          ],
+          align:
+            "center"
+        }
+      );
 
       //////////////////////////////////////////////////
       // PAGINA 5 KPI
