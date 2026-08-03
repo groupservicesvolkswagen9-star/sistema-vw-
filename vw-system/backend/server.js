@@ -240,10 +240,11 @@ app.get(
   async (req, res) => {
 
     const reporteId =
-  "S5u69j05F57EjHbIqtY4";
+      "S5u69j05F57EjHbIqtY4";
 
-const okrId =
-  "5s8OqXC3fp3mu6PdqtyS";
+    const okrId =
+      "5s8OqXC3fp3mu6PdqtyS";
+
     const reporteDoc =
       await db
         .collection("ReporteMensual")
@@ -257,8 +258,15 @@ const okrId =
         .get();
 
     res.json({
+      reporteExiste:
+        reporteDoc.exists,
+
+      okrExiste:
+        okrDoc.exists,
+
       reporte:
         reporteDoc.data(),
+
       okr:
         okrDoc.data()
     });
