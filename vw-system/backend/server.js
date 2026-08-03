@@ -244,17 +244,13 @@ app.get(
 
       const reporteSnap =
         await db
-          .collection(
-            "ReporteMensual"
-          )
+          .collection("ReporteMensual")
           .limit(1)
           .get();
 
       const okrSnap =
         await db
-          .collection(
-            "OKR"
-          )
+          .collection("OKR")
           .limit(1)
           .get();
 
@@ -265,15 +261,16 @@ app.get(
         okrSnap.docs[0].data();
 
       const pdf =
-        new PDFDocument();
+        new PDFDocument({
+          bufferPages: true,
+          margin: 50
+        });
 
       const buffers = [];
 
       pdf.on(
         "data",
-        buffers.push.bind(
-          buffers
-        )
+        buffers.push.bind(buffers)
       );
 
       pdf.on(
@@ -281,12 +278,10 @@ app.get(
         async () => {
 
           const pdfBuffer =
-            Buffer.concat(
-              buffers
-            );
+            Buffer.concat(buffers);
 
           const ruta =
-            `documentos/pdf/${reporte.anio}/${reporte.mes}/reporte-prueba.pdf`;
+            `documentos/pdf/${reporte.anio}/${reporte.mes}/${reporte.usuario}.pdf`;
 
           await bucket
             .file(ruta)
@@ -300,19 +295,38 @@ app.get(
         }
       );
 
+      ////////////////////////////////////////////////////
+      // PORTADA
+      ////////////////////////////////////////////////////
+
+      pdf.rect(
+        0,
+        0,
+        612,
+        80
+      ).fill("#003366");
+
+      pdf.fillColor("white");
+
+      pdf.fontSize(24)
+         .text(
+           "VOLKSWAGEN GROUP SERVICES",
+           40,
+           25
+         );
+
+      pdf.fillColor("black");
+
+      pdf.moveDown(4);
+
       pdf.fontSize(20)
          .text(
-           "VOLKSWAGEN GROUP SERVICES"
+           "Reporte Mensual Ejecutivo"
          );
 
       pdf.moveDown();
 
-      pdf.fontSize(16)
-         .text(
-           "Reporte Mensual"
-         );
-
-      pdf.moveDown();
+      pdf.fontSize(14);
 
       pdf.text(
         `Mes: ${reporte.mes}`
@@ -327,62 +341,259 @@ app.get(
       );
 
       pdf.text(
-        `Empleado: ${reporte.nombre} ${reporte.apellido}`
+        `Especialista: ${reporte.nombre} ${reporte.apellido}`
+      );
+
+      pdf.text(
+        `Correo: ${reporte.usuario}`
+      );
+
+      ////////////////////////////////////////////////////
+      // RESUMEN EJECUTIVO
+      ////////////////////////////////////////////////////
+
+      pdf.addPage();
+
+      pdf.fontSize(18)
+         .fillColor("#003366")
+         .text(
+           "Resumen Ejecutivo"
+         );
+
+      pdf.moveDown();
+
+      pdf.fillColor("black");
+
+      pdf.fontSize(12);
+
+      pdf.text(
+        `Logros:\n${reporte.logros}`
       );
 
       pdf.moveDown();
 
       pdf.text(
-        `Logros: ${reporte.logros}`
-      );
-
-      pdf.text(
-        `Problemas: ${reporte.problemas}`
-      );
-
-      pdf.text(
-        `Acciones: ${reporte.acciones}`
+        `Problemas:\n${reporte.problemas}`
       );
 
       pdf.moveDown();
 
       pdf.text(
-        "OKRs"
+        `Acciones:\n${reporte.acciones}`
       );
+
+      ////////////////////////////////////////////////////
+      // DASHBOARD OKR
+      ////////////////////////////////////////////////////
+
+      pdf.addPage();
+
+      pdf.fontSize(18)
+         .fillColor("#003366")
+         .text(
+           "Dashboard OKR"
+         );
+
+      pdf.moveDown();
 
       okr.okrs.forEach(
         (item, index) => {
 
+          let color = "red";
+          let semaforo = "🔴";
+
+          if (
+            item.avance >= 80
+          ) {
+
+            color = "green";
+            semaforo = "🟢";
+
+          } else if (
+            item.avance >= 50
+          ) {
+
+            color = "orange";
+            semaforo = "🟡";
+
+          }
+
+          pdf.fillColor(color);
+
+          pdf.fontSize(14)
+             .text(
+               `Objetivo ${index + 1}`
+             );
+
+          pdf.fillColor("black");
+
           pdf.text(
-            `${index + 1}. ${item.objetivo}`
+            `Objetivo: ${item.objetivo}`
           );
 
           pdf.text(
-            `KR: ${item.resultadoClave}`
+            `Resultado Clave: ${item.resultadoClave}`
           );
 
           pdf.text(
             `Avance: ${item.avance}%`
           );
 
+          pdf.text(
+            `Estado: ${semaforo}`
+          );
+
           pdf.moveDown();
+
+          ////////////////////////////////////////////////////
+          // Barra de avance
+          ////////////////////////////////////////////////////
+
+          const anchoBarra =
+            300;
+
+          const progreso =
+            (item.avance / 100)
+            * anchoBarra;
+
+          pdf.rect(
+            50,
+            pdf.y,
+            anchoBarra,
+            15
+          )
+          .stroke();
+
+          pdf.rect(
+            50,
+            pdf.y,
+            progreso,
+            15
+          )
+          .fill(color);
+
+          pdf.moveDown(2);
 
         }
       );
+
+      ////////////////////////////////////////////////////
+      // KPI
+      ////////////////////////////////////////////////////
+
+      pdf.addPage();
+
+      pdf.fontSize(18)
+         .fillColor("#003366")
+         .text(
+           "Indicadores KPI"
+         );
+
+      pdf.moveDown();
+
+      okr.okrs.forEach(
+        objetivo => {
+
+          objetivo.kpis?.forEach(
+            kpi => {
+
+              pdf.fontSize(12)
+                 .fillColor("black");
+
+              pdf.text(
+                `KPI: ${kpi.nombre}`
+              );
+
+              pdf.text(
+                `Meta: ${kpi.meta}`
+              );
+
+              pdf.text(
+                `Actual: ${kpi.actual}`
+              );
+
+              pdf.text(
+                `Unidad: ${kpi.unidad}`
+              );
+
+              pdf.moveDown();
+
+            }
+          );
+
+        }
+      );
+
+      ////////////////////////////////////////////////////
+      // CONCLUSIONES
+      ////////////////////////////////////////////////////
+
+      pdf.addPage();
+
+      pdf.fontSize(18)
+         .fillColor("#003366")
+         .text(
+           "Conclusiones"
+         );
+
+      pdf.moveDown();
+
+      pdf.fillColor("black");
+
+      pdf.text(
+        `Estado General: ${okr.estado}`
+      );
+
+      pdf.text(
+        `Grupo: ${reporte.grupoNombre}`
+      );
+
+      pdf.text(
+        `Periodo: ${reporte.mes} ${reporte.anio}`
+      );
+
+      pdf.moveDown();
+
+      pdf.text(
+        "Documento generado automáticamente por VWGS."
+      );
+
+      ////////////////////////////////////////////////////
+      // PIE DE PÁGINA
+      ////////////////////////////////////////////////////
+
+      const totalPages =
+        pdf.bufferedPageRange().count;
+
+      for (
+        let i = 0;
+        i < totalPages;
+        i++
+      ) {
+
+        pdf.switchToPage(i);
+
+        pdf.fontSize(8);
+
+        pdf.fillColor("gray");
+
+        pdf.text(
+          `VWGS Reporte Ejecutivo | Página ${i + 1} de ${totalPages}`,
+          50,
+          760
+        );
+
+      }
 
       pdf.end();
 
     } catch (error) {
 
-      console.error(
-        error
-      );
+      console.error(error);
 
-      res.status(500)
-        .json({
-          error:
-            error.message
-        });
+      res.status(500).json({
+        error: error.message
+      });
 
     }
 
