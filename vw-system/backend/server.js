@@ -2,7 +2,17 @@ const express = require("express");
 const cors = require("cors");
 const multer = require("multer");
 const bucket = require("./storage");
+const PDFDocument =
+  require("pdfkit");
 
+const PptxGenJS =
+  require("pptxgenjs");
+
+const {
+  db
+} = require(
+  "./firebase-admin"
+);
 const app = express();
 
 app.use(cors());
@@ -28,7 +38,80 @@ app.post("/generar-pdf", async (req,res)=>{
   res.send("PDF generado ✅");
 
 });
+//////////////////////////////////////////////////////
+// ✅ GENERAR DOCUMENTO PDF
+//////////////////////////////////////////////////////
+app.post(
+  "/generar-documentos",
+  async (req, res) => {
 
+    try {
+
+      const {
+        reporteId,
+        okrId
+      } = req.body;
+
+      const reporteDoc =
+        await db
+          .collection(
+            "ReporteMensual"
+          )
+          .doc(
+            reporteId
+          )
+          .get();
+
+      const okrDoc =
+        await db
+          .collection(
+            "OKR"
+          )
+          .doc(
+            okrId
+          )
+          .get();
+
+      if (
+        !reporteDoc.exists ||
+        !okrDoc.exists
+      ) {
+        return res
+          .status(404)
+          .json({
+            error:
+            "Documento no encontrado"
+          });
+      }
+
+      const reporte =
+        reporteDoc.data();
+
+      const okr =
+        okrDoc.data();
+
+      res.json({
+        ok: true,
+        reporte,
+        okr
+      });
+
+    } catch (error) {
+
+      console.error(
+        error
+      );
+
+      res.status(500)
+      .json({
+        error:
+          error.message
+      });
+
+    }
+
+  }
+);
 //////////////////////////////////////////////////////
 // ✅ FIRMA (ejemplo)
 //////////////////////////////////////////////////////
@@ -74,6 +157,44 @@ app.get(
       res.status(500).send(
         error.message
       );
+
+    }
+
+  }
+);
+//////////////////////////////////////////////////////
+// TEST 3
+//////////////////////////////////////////////////////
+app.get(
+  "/test-firestore",
+  async (req, res) => {
+
+    try {
+
+      const snap =
+        await db
+          .collection(
+            "ReporteMensual"
+          )
+          .limit(1)
+          .get();
+
+      res.json({
+        ok: true,
+        documentos:
+          snap.size
+      });
+
+    } catch (error) {
+
+      console.error(error);
+
+      res.status(500)
+        .json({
+          ok: false,
+          error:
+            error.message
+        });
 
     }
 
