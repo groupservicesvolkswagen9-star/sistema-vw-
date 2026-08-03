@@ -274,14 +274,14 @@ app.get(
         .data();
 
       const imgPie =
-        await graficaSemaforo(
-          okr.okrs
-        );
+  await generarGraficaSemaforo(
+    okr.okrs
+  );
 
-      const imgOKR =
-        await graficaOKR(
-          okr.okrs
-        );
+const imgOKR =
+  await generarGraficaOKR(
+    okr.okrs
+  );
 
       const pdf =
         new PDFDocument({
