@@ -201,7 +201,40 @@ app.get(
 
   }
 );
+app.get(
+  "/test-okr",
+  async (req, res) => {
 
+    try {
+
+      const snap =
+        await db
+          .collection("OKR")
+          .limit(1)
+          .get();
+
+      const documento =
+        snap.docs[0];
+
+      res.json({
+        ok: true,
+        id: documento.id,
+        datos:
+          documento.data()
+      });
+
+    } catch (error) {
+
+      res.status(500)
+      .json({
+        error:
+          error.message
+      });
+
+    }
+
+  }
+);
 //////////////////////////////////////////////////////
 const PORT = process.env.PORT || 3001;
 
