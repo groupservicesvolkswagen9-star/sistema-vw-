@@ -239,36 +239,33 @@ app.get(
   "/test-generar-documentos",
   async (req, res) => {
 
-    const reporteId =
-      "S5u69j05F57EjHbIqtY4";
-
-    const okrId =
-      "5s8OqXC3fp3mu6PdqtyS";
-
-    const reporteDoc =
+    const reporteSnap =
       await db
-        .collection("ReporteMensual")
-        .doc(reporteId)
+        .collection(
+          "ReporteMensual"
+        )
+        .limit(1)
         .get();
 
-    const okrDoc =
+    const okrSnap =
       await db
-        .collection("OKR")
-        .doc(okrId)
+        .collection(
+          "OKR"
+        )
+        .limit(1)
         .get();
+
+    const reporte =
+      reporteSnap.docs[0]
+      ?.data();
+
+    const okr =
+      okrSnap.docs[0]
+      ?.data();
 
     res.json({
-      reporteExiste:
-        reporteDoc.exists,
-
-      okrExiste:
-        okrDoc.exists,
-
-      reporte:
-        reporteDoc.data(),
-
-      okr:
-        okrDoc.data()
+      reporte,
+      okr
     });
 
   }
