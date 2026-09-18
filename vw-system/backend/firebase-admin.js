@@ -8,7 +8,9 @@ const {
 } = require("firebase-admin/firestore");
 
 const serviceAccount =
-  require("./service-account.json");
+  JSON.parse(
+    process.env.FIREBASE_SERVICE_ACCOUNT
+  );
 
 const app =
   initializeApp({

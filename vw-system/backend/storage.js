@@ -3,8 +3,12 @@ const { Storage } =
 
 const storage =
   new Storage({
-    keyFilename:
-      "./service-account.json"
+
+    credentials:
+      JSON.parse(
+        process.env.GOOGLE_CREDENTIALS
+      )
+
   });
 
 const bucket =
