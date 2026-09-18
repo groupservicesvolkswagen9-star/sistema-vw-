@@ -717,14 +717,11 @@ app.post(
       const archivo =
         req.file;
 
-      const fecha =
-        new Date();
+    const anio =
+  req.body.anio;
 
-      const anio =
-        fecha.getFullYear();
-
-      const mes =
-        fecha.getMonth() + 1;
+const mes =
+  req.body.mes;
 
       const ruta =
         `documentos/pdf/${anio}/${mes}/${archivo.originalname}`;

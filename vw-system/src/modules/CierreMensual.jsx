@@ -445,7 +445,25 @@ const guardarPDFCloud =
         pdfBlob,
         nombrePDF
       );
+      formData.append(
+  "mes",
+  cierreSeleccionado.mes
+);
 
+formData.append(
+  "anio",
+  cierreSeleccionado.anio
+);
+
+formData.append(
+  "usuario",
+  cierreSeleccionado.usuario
+);
+
+formData.append(
+  "grupo",
+  cierreSeleccionado.grupo
+);
       const response =
         await fetch(
           `${import.meta.env.VITE_API_URL}/subir-pdf`,
