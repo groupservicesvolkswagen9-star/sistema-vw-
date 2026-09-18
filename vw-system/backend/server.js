@@ -695,6 +695,71 @@ const imgOKR =
   }
 );
 //////////////////////////////////////////////////////
+// SUBIR PDF A CLOUD STORAGE
+//////////////////////////////////////////////////////
+
+app.post(
+  "/subir-pdf",
+  upload.single("archivo"),
+  async (req, res) => {
+
+    try {
+
+      if (!req.file) {
+
+        return res.status(400).json({
+          ok: false,
+          error: "No se recibió archivo"
+        });
+
+      }
+
+      const archivo =
+        req.file;
+
+      const fecha =
+        new Date();
+
+      const anio =
+        fecha.getFullYear();
+
+      const mes =
+        fecha.getMonth() + 1;
+
+      const ruta =
+        `documentos/pdf/${anio}/${mes}/${archivo.originalname}`;
+
+      await bucket
+        .file(ruta)
+        .save(
+          archivo.buffer,
+          {
+            contentType:
+              "application/pdf"
+          }
+        );
+
+      res.json({
+        ok: true,
+        ruta
+      });
+
+    }
+    catch (error) {
+
+      console.error(error);
+
+      res.status(500).json({
+        ok: false,
+        error:
+          error.message
+      });
+
+    }
+
+  }
+);
+//////////////////////////////////////////////////////
 const PORT = process.env.PORT || 3001;
 
 app.listen(PORT, ()=>{

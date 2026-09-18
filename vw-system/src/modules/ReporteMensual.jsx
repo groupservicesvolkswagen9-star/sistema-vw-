@@ -33,7 +33,15 @@ export default function ReporteMensual({
       new Date()
       .getFullYear()
     );
+    const [
+  filtroMes,
+  setFiltroMes
+] = useState("");
 
+  const [
+  filtroAnio,
+  setFiltroAnio
+  ] = useState("");
   const [logros,
     setLogros] =
     useState("");
@@ -48,7 +56,26 @@ export default function ReporteMensual({
 
   const guardar =
     async () => {
+      if (!mes) {
+      alert(
+      "Seleccione un mes"
+     );
+       return;
+      }
+      const existe =
+     reportes.some(
+     item =>
+      item.usuario === user.email &&
+      item.mesClave === `${mes}-${anio}` &&
+      item.estado !== "Cancelado"
+    );
 
+    if (existe) {
+   alert(
+    "Ya existe un reporte para ese mes"
+   );
+     return;
+  }
       await addDoc(
         collection(
           db,
@@ -56,8 +83,8 @@ export default function ReporteMensual({
         ),
         {
           mes,
-          anio,
-
+          anio:Number(anio),
+          mesClave:`${mes}-${anio}`,
           grupoId:
             user.grupoId,
 
@@ -65,18 +92,27 @@ export default function ReporteMensual({
             user.grupoNombre,
 
           responsable:
-  user.email,
+          user.email,
 
-estado:
-  "Pendiente Coordinador",
+          usuario:
+          user.email,
+
+          nombre:
+          user.nombre || "",
+
+          apellido:
+          user.apellido || "",
+          estado:
+          "Capturado",
+          cierreDisponible: true,
           sla,
 
-        posicion,
+          posicion,
 
-        especialistaVWGS,
+          especialistaVWGS,
 
-        responsables,
-        periodo,
+         responsables,
+         periodo,
           logros,
           problemas,
           acciones,
@@ -92,6 +128,9 @@ estado:
         "Reporte guardado"
         
       );
+      setReporteSeleccionado(
+     null
+    );
       setMes("");
     setLogros("");
     setProblemas("");
@@ -99,7 +138,15 @@ estado:
     setPeriodo("");
     setSla(""); 
     setPosicion("");
-
+    setResponsables([
+  {
+    responsableVWM: "",
+    rolResponsabilidad: "",
+    grupo: "",
+    expandido: true,
+    proyectos: []
+  }
+]);
     await cargarReportes();
     };const cargarReportes =
 async () => {
@@ -136,60 +183,6 @@ useEffect(() => {
 
 }, []);
 
-const aprobarReporte =
-async (id) => {
-
-  if (
-    !window.confirm(
-      "¿Aprobar reporte?"
-    )
-  ) {
-    return;
-  }
-
-  await updateDoc(
-    doc(
-      db,
-      "ReporteMensual",
-      id
-    ),
-    {
-      estado:
-      "Aprobado"
-    }
-  );
-  alert(
-  "Reporte aprobado"
-);
-  cargarReportes();
-
-};
-const rechazarReporte =
-async (id) => {
-  if (
-    !window.confirm(
-      "¿Rechazar reporte?"
-    )
-  ) {
-    return;
-  }
-  await updateDoc(
-    doc(
-      db,
-      "ReporteMensual",
-      id
-    ),
-    {
-      estado:
-        "Rechazado"
-    }
-  );
-  alert(
-  "Reporte rechazado"
-);
-  cargarReportes();
-
-};
 const cancelarReporte =
 async (id) => {
 
@@ -250,6 +243,7 @@ const agregarResponsable =
 
         {
   responsableVWM: "",
+  rolResponsabilidad: "",
   grupo: "",
   expandido: true,
   proyectos: []
@@ -319,6 +313,118 @@ const agregarResponsable =
   );
 
 };
+const agregarHito = (
+  rIndex,
+  pIndex
+) => {
+
+  const copia =
+    [...responsables];
+
+  copia[rIndex]
+    .proyectos[pIndex]
+    .hitos.push({
+      nombre: "",
+      soll: "",
+      ist: ""
+    });
+
+  setResponsables(copia);
+
+};
+const eliminarHito = (
+  rIndex,
+  pIndex,
+  hIndex
+) => {
+
+  const copia =
+    [...responsables];
+
+  copia[rIndex]
+    .proyectos[pIndex]
+    .hitos.splice(
+      hIndex,
+      1
+    );
+
+  setResponsables(copia);
+
+};
+const agregarRiesgo = (
+ rIndex,
+ pIndex
+) => {
+
+ const copia =
+   [...responsables];
+
+ copia[rIndex]
+   .proyectos[pIndex]
+   .riesgos.push("");
+
+ setResponsables(copia);
+
+};
+const eliminarRiesgo = (
+ rIndex,
+ pIndex,
+ riesgoIndex
+) => {
+
+ const copia =
+   [...responsables];
+
+ copia[rIndex]
+   .proyectos[pIndex]
+   .riesgos.splice(
+     riesgoIndex,
+     1
+   );
+
+ setResponsables(copia);
+
+};
+const agregarPaso = (
+  rIndex,
+  pIndex
+) => {
+
+  const copia =
+    [...responsables];
+
+  copia[rIndex]
+    .proyectos[pIndex]
+    .siguientesPasos.push(
+      ""
+    );
+
+  setResponsables(
+    copia
+  );
+
+};
+const eliminarPaso = (
+  rIndex,
+  pIndex,
+  pasoIndex
+) => {
+
+  const copia =
+    [...responsables];
+
+  copia[rIndex]
+    .proyectos[pIndex]
+    .siguientesPasos.splice(
+      pasoIndex,
+      1
+    );
+
+  setResponsables(
+    copia
+  );
+
+};
 const [sla,
   setSla] =
   useState("");
@@ -338,6 +444,7 @@ const [responsables,
   useState([
     {
       responsableVWM: "",
+      rolResponsabilidad: "",
       grupo: "",
 
       expandido: true,
@@ -351,31 +458,30 @@ const agregarProyecto =
     const copia =
       [...responsables];
 
-    copia[
-      indexResponsable
-    ].proyectos.push({
+copia[
+  indexResponsable
+].proyectos.push({
 
-      proyecto: "",
+  proyecto: "",
 
-      descripcion: "",
+  descripcion: "",
 
-      hito1Soll: "",
-      hito2Soll: "",
-      hito3Soll: "",
-      hito4Soll: "",
-      hito5Soll: "",
+  estado: "Verde",
 
-      hito1Ist: "",
-      hito2Ist: "",
-      hito3Ist: "",
-      hito4Ist: "",
-      hito5Ist: "",
+  avance: 0,
 
-      siguientesPasos: "",
+  siguientesPasos: [""],
 
-      riesgos: ""
+  riesgos: [""],
+  hitos: [
+  {
+    nombre: "",
+    soll: "",
+    ist: ""
+  }
+]
 
-    });
+});
 
     setResponsables(
       copia
@@ -385,38 +491,39 @@ const agregarProyecto =
 const [periodo,
   setPeriodo] =
   useState("");
-let listaMostrar =
-  reportes;
-  if (
-  rol ===
-  "empleado"
-) {
+let listaMostrar = reportes;
+
+if (rol === "empleado") {
 
   listaMostrar =
-    reportes.filter(
+    listaMostrar.filter(
       item =>
-        item.responsable ===
+        item.usuario ===
         user.email
     );
 
 }
-else if (
-  rol ===
-  "coordinador"
-) {
+
+
+if (filtroMes) {
 
   listaMostrar =
-    reportes.filter(
+    listaMostrar.filter(
       item =>
-        item.grupoNombre ===
-        user.grupoNombre
+        item.mes ===
+        filtroMes
     );
 
 }
-else {
+
+if (filtroAnio) {
 
   listaMostrar =
-    reportes;
+    listaMostrar.filter(
+      item =>
+        Number(item.anio) ===
+        Number(filtroAnio)
+    );
 
 }
   return (
@@ -431,7 +538,21 @@ else {
       <h2>
         Reporte Mensual
       </h2>
-      {
+      
+{
+rol === "coordinador" && (
+  <div
+    className="sap-card"
+    style={{
+      marginTop: "20px"
+    }}
+  >
+    Este módulo se administra
+    desde Cierre Mensual.
+  </div>
+)
+}
+{
 rol === "empleado" && (
 <>
       <select
@@ -566,7 +687,27 @@ responsable.expandido
 
   }}
 />
+<input
+  className="fb-input"
+  placeholder="Rol / Responsabilidad"
+  value={
+    responsable.rolResponsabilidad
+  }
+  onChange={e => {
 
+    const copia =
+      [...responsables];
+
+    copia[rIndex]
+      .rolResponsabilidad =
+      e.target.value;
+
+    setResponsables(
+      copia
+    );
+
+  }}
+/>
 <input
   className="fb-input"
   placeholder="Grupo"
@@ -685,15 +826,11 @@ Proyecto
 
   }}
 />
-
-<input
+<select
   className="fb-input"
-  placeholder="Hito 1 SOLL"
-
   value={
-    proyecto.hito1Soll
+    proyecto.estado
   }
-
   onChange={e => {
 
     const copia =
@@ -701,7 +838,209 @@ Proyecto
 
     copia[rIndex]
       .proyectos[pIndex]
-      .hito1Soll =
+      .estado =
+      e.target.value;
+
+    setResponsables(
+      copia
+    );
+
+  }}
+>
+
+  <option>
+    Verde
+  </option>
+
+  <option>
+    Amarillo
+  </option>
+
+  <option>
+    Rojo
+  </option>
+
+</select>
+<label>
+
+Avance:
+{" "}
+{
+proyecto.avance
+}%
+
+</label>
+
+<input
+  type="range"
+  min="0"
+  max="100"
+  value={
+    proyecto.avance
+  }
+  onChange={e => {
+
+    const copia =
+      [...responsables];
+
+    copia[rIndex]
+      .proyectos[pIndex]
+      .avance =
+      Number(
+        e.target.value
+      );
+
+    setResponsables(
+      copia
+    );
+
+  }}
+/>
+<h6>Hitos</h6>
+
+<button
+  type="button"
+  onClick={() =>
+    agregarHito(
+      rIndex,
+      pIndex
+    )
+  }
+>
+  + Agregar Hito
+</button>
+{
+proyecto.hitos.map(
+(
+ hito,
+ hIndex
+) => (
+
+<div
+ key={hIndex}
+ className="sap-card"
+>
+
+<button
+ type="button"
+ onClick={() =>
+   eliminarHito(
+     rIndex,
+     pIndex,
+     hIndex
+   )
+ }
+>
+🗑️
+</button>
+
+<input
+ className="fb-input"
+ placeholder="Nombre del Hito"
+ value={hito.nombre}
+ onChange={e => {
+
+   const copia =
+     [...responsables];
+
+   copia[rIndex]
+     .proyectos[pIndex]
+     .hitos[hIndex]
+     .nombre =
+     e.target.value;
+
+   setResponsables(copia);
+
+ }}
+/>
+
+<input
+ className="fb-input"
+ placeholder="SOLL"
+ value={hito.soll}
+ onChange={e => {
+
+   const copia =
+     [...responsables];
+
+   copia[rIndex]
+     .proyectos[pIndex]
+     .hitos[hIndex]
+     .soll =
+     e.target.value;
+
+   setResponsables(copia);
+
+ }}
+/>
+
+<input
+ className="fb-input"
+ placeholder="IST"
+ value={hito.ist}
+ onChange={e => {
+
+   const copia =
+     [...responsables];
+
+   copia[rIndex]
+     .proyectos[pIndex]
+     .hitos[hIndex]
+     .ist =
+     e.target.value;
+
+   setResponsables(copia);
+
+ }}
+/>
+
+</div>
+
+))
+}
+
+<h6>
+Siguientes Pasos
+</h6>
+
+<button
+  type="button"
+  onClick={() =>
+    agregarPaso(
+      rIndex,
+      pIndex
+    )
+  }
+>
+
++ Paso
+
+</button>
+{
+proyecto.siguientesPasos.map(
+(
+  paso,
+  pasoIndex
+) => (
+
+<div
+  key={pasoIndex}
+>
+
+<input
+  className="fb-input"
+  placeholder="Paso"
+  value={paso}
+  onChange={e => {
+
+    const copia =
+      [...responsables];
+
+    copia[rIndex]
+      .proyectos[pIndex]
+      .siguientesPasos[
+        pasoIndex
+      ] =
       e.target.value;
 
     setResponsables(
@@ -711,81 +1050,94 @@ Proyecto
   }}
 />
 
-<input
-  className="fb-input"
-  placeholder="Hito 2 SOLL"
-
-  value={
-    proyecto.hito2Soll
+<button
+  type="button"
+  onClick={() =>
+    eliminarPaso(
+      rIndex,
+      pIndex,
+      pasoIndex
+    )
   }
+>
 
-  onChange={e => {
+🗑️
 
-    const copia =
-      [...responsables];
+</button>
 
-    copia[rIndex]
-      .proyectos[pIndex]
-      .hito2Soll =
-      e.target.value;
+</div>
 
-    setResponsables(
-      copia
-    );
+))
+}
 
-  }}
-/>
+<h6>
+Riesgos
+</h6>
 
-<input
-  className="fb-input"
-  placeholder="Hito 3 SOLL"
-/>
+<button
+ type="button"
+ onClick={() =>
+   agregarRiesgo(
+     rIndex,
+     pIndex
+   )
+ }
+>
 
-<input
-  className="fb-input"
-  placeholder="Hito 4 SOLL"
-/>
++ Riesgo
 
-<input
-  className="fb-input"
-  placeholder="Hito 5 SOLL"
-/>
+</button>
+{
+proyecto.riesgos.map(
+(
+ riesgo,
+ riesgoIndex
+) => (
 
-<input
-  className="fb-input"
-  placeholder="Hito 1 IST"
-/>
-
-<input
-  className="fb-input"
-  placeholder="Hito 2 IST"
-/>
+<div
+ key={riesgoIndex}
+>
 
 <input
-  className="fb-input"
-  placeholder="Hito 3 IST"
+ className="fb-input"
+ placeholder="Riesgo"
+ value={riesgo}
+ onChange={e => {
+
+  const copia =
+    [...responsables];
+
+  copia[rIndex]
+    .proyectos[pIndex]
+    .riesgos[
+      riesgoIndex
+    ] =
+    e.target.value;
+
+  setResponsables(copia);
+
+ }}
 />
 
-<input
-  className="fb-input"
-  placeholder="Hito 4 IST"
-/>
+<button
+ type="button"
+ onClick={() =>
+   eliminarRiesgo(
+     rIndex,
+     pIndex,
+     riesgoIndex
+   )
+ }
+>
 
-<input
-  className="fb-input"
-  placeholder="Hito 5 IST"
-/>
+🗑️
 
-<textarea
-  className="fb-input"
-  placeholder="Siguientes Pasos"
-/>
+</button>
 
-<textarea
-  className="fb-input"
-  placeholder="Posibles Riesgos"
-/>
+</div>
 
+))
+}
 </div>
 
 )
@@ -886,7 +1238,7 @@ Vista Previa
 </h3>
 
   <h4>
-Responsables
+Reporte mensual
 </h4>
 
 {
@@ -901,7 +1253,7 @@ responsables.map(
 <p>
 
 <b>
-Responsable:
+Responsable VWM:
 </b>
 
 {" "}
@@ -912,7 +1264,11 @@ responsable
 }
 
 </p>
-
+<p>
+<b>Rol:</b>
+{" "}
+{responsable.rolResponsabilidad}
+</p>
 <p>
 
 <b>
@@ -963,33 +1319,68 @@ proyecto.descripcion
 
 </p>
 <p>
-
-<b>
-Hito 1 SOLL:
-</b>
-
-{" "}
-
-{
-proyecto.hito1Soll
-}
-
+  <b>Estado:</b>{" "}
+  {proyecto.estado}
 </p>
+
 <p>
+  <b>Avance:</b>{" "}
+  {proyecto.avance}%
+</p>
 
-<b>
-Hito 2 SOLL:
-</b>
-
-{" "}
+<p>
+<b>Hitos:</b>
+</p>
 
 {
-proyecto.hito2Soll
-}
+proyecto.hitos?.map(
+(
+  hito,
+  index
+) => (
 
+<div key={index}>
+
+<p>
+{hito.nombre}
 </p>
+
+<p>
+SOLL:
+{hito.soll}
+</p>
+
+<p>
+IST:
+{hito.ist}
+</p>
+
 </div>
 
+))
+}
+<p>
+<b>Siguientes Pasos:</b>
+</p>
+
+{
+proyecto.siguientesPasos?.map(
+(paso,index)=>(
+<p key={index}>
+• {paso}
+</p>
+))
+} l 
+<p>
+<b>Riesgos:</b>
+</p>
+
+{
+proyecto.riesgos?.map(
+(riesgo,index)=>(
+<p key={index}>
+• {riesgo}
+</p>
 ))
 }
 
@@ -997,6 +1388,12 @@ proyecto.hito2Soll
 
 ))
 }
+
+</div>
+
+))
+}
+
 <p>
 <b>SLA:</b>
 {" "}
@@ -1021,13 +1418,17 @@ proyecto.hito2Soll
 {periodo}
 </p>
 <p>
-<b>Mes:</b> {mes}
+  <b>Mes:</b> {mes}
 </p>
-
 <p>
-<b>Año:</b> {anio}
+  <b>Mes Clave:</b>{" "}
+  {mes && anio
+    ? `${mes}-${anio}`
+    : ""}
 </p>
-
+<p>
+  <b>Año:</b> {anio}
+</p>
 <p>
 <b>Grupo:</b>
 {" "}
@@ -1064,6 +1465,13 @@ proyecto.hito2Soll
 </>
 
 )}
+{
+(
+  rol === "empleado" ||
+  rol === "coordinador" ||
+  rol === "gerente" ||
+  rol === "admin"
+) && (
 
     <div
   className="sap-card sap-card-full"
@@ -1072,7 +1480,54 @@ proyecto.hito2Soll
     marginTop: "20px"
   }}
 >
+<div
+style={{
+  display:"flex",
+  gap:"10px",
+  marginBottom:"15px"
+}}
+>
 
+<select
+  value={filtroMes}
+  onChange={e =>
+    setFiltroMes(
+      e.target.value
+    )
+  }
+>
+
+<option value="">
+Todos los meses
+</option>
+
+<option>Enero</option>
+<option>Febrero</option>
+<option>Marzo</option>
+<option>Abril</option>
+<option>Mayo</option>
+<option>Junio</option>
+<option>Julio</option>
+<option>Agosto</option>
+<option>Septiembre</option>
+<option>Octubre</option>
+<option>Noviembre</option>
+<option>Diciembre</option>
+
+</select>
+
+<input
+  type="number"
+  placeholder="Año"
+  value={filtroAnio}
+  onChange={e =>
+    setFiltroAnio(
+      e.target.value
+    )
+  }
+/>
+
+</div>
 <h3>
 Historial de Reportes
 </h3>
@@ -1155,34 +1610,7 @@ item => (
 >
 <td>
 
-{
-rol === "coordinador" &&
-item.estado === "Pendiente Coordinador" && (
 
-<>
-<button
-  onClick={() =>
-    aprobarReporte(
-      item.id
-    )
-  }
->
-✅
-</button>
-
-<button
-  onClick={() =>
-    rechazarReporte(
-      item.id
-    )
-  }
->
-❌
-</button>
-</>
-
-)
-}
 {
 rol === "admin" &&
 item.estado !== "Cancelado" && (
@@ -1223,7 +1651,9 @@ item.estado !== "Cancelado" && (
 </td>
 
 <td>
-{item.responsable}
+{item.nombre} {item.apellido}
+<br />
+<small>{item.usuario}</small>
 </td>
 
 <td>
@@ -1237,16 +1667,21 @@ item.estado !== "Cancelado" && (
     fontWeight:
       "bold",
     color:
-  item.estado ===
-  "Aprobado"
-  ? "green"
-  : item.estado ===
-    "Rechazado"
-  ? "red"
-  : item.estado ===
-    "Cancelado"
-  ? "gray"
-  : "orange"
+
+item.estado === "Aprobado"
+? "green"
+
+: item.estado === "Rechazado"
+? "red"
+
+: item.estado === "Cancelado"
+? "gray"
+
+: item.estado ===
+"Capturado"
+? "#0a6ed1"
+
+: "orange"
   }}
 >
 
@@ -1292,18 +1727,28 @@ Detalle del Reporte
 </h3>
 
 <p>
-<b>Mes:</b> {reporteSeleccionado.mes}
+  <b>Mes Clave:</b>{" "}
+  {reporteSeleccionado.mesClave}
 </p>
-
+<p>
+  <b>Mes:</b>{" "}
+  {reporteSeleccionado.mes}
+</p>
 <p>
 <b>Año:</b> {reporteSeleccionado.anio}
 </p>
 
 <p>
 <b>Responsable:</b>{" "}
-{reporteSeleccionado.responsable}
+{reporteSeleccionado.nombre}
+{" "}
+{reporteSeleccionado.apellido}
 </p>
 
+<p>
+<b>Correo:</b>{" "}
+{reporteSeleccionado.usuario}
+</p>
 <p>
 <b>Grupo:</b>{" "}
 {reporteSeleccionado.grupoNombre}
@@ -1371,7 +1816,11 @@ reporteSeleccionado.responsables?.map(
 <b>Grupo:</b>{" "}
 {responsable.grupo}
 </p>
-
+<p>
+<b>Rol:</b>
+{" "}
+{responsable.rolResponsabilidad}
+</p>
 {
 responsable.proyectos?.map(
 (proyecto, pIndex) => (
@@ -1394,30 +1843,71 @@ responsable.proyectos?.map(
 </p>
 
 <p>
-<b>Hito 1 SOLL:</b>{" "}
-{proyecto.hito1Soll}
+<b>Estado:</b>
+{" "}
+{proyecto.estado}
 </p>
 
 <p>
-<b>Hito 2 SOLL:</b>{" "}
-{proyecto.hito2Soll}
+<b>Avance:</b>
+{" "}
+{proyecto.avance}%
 </p>
 
 <p>
-<b>Siguientes Pasos:</b>{" "}
-{proyecto.siguientesPasos}
+<b>Hitos:</b>
+</p>
+
+{
+proyecto.hitos?.map(
+(
+  hito,
+  index
+) => (
+
+<div key={index}>
+
+<p>
+{hito.nombre}
 </p>
 
 <p>
-<b>Riesgos:</b>{" "}
-{proyecto.riesgos}
+SOLL:
+{hito.soll}
+</p>
+
+<p>
+IST:
+{hito.ist}
 </p>
 
 </div>
 
-)
-)
+))
+}
+<p>
+<b>Riesgos:</b>
+</p>
 
+{
+proyecto.riesgos?.map(
+(riesgo,index)=>(
+<p key={index}>
+• {riesgo}
+</p>
+))
+}
+<p>
+<b>Siguientes Pasos:</b>
+</p>
+
+{
+proyecto.siguientesPasos?.map(
+(paso,index)=>(
+<p key={index}>
+• {paso}
+</p>
+))
 }
 
 </div>
@@ -1430,8 +1920,17 @@ responsable.proyectos?.map(
 </div>
 
 )
+)
+
 }
+
 </div>
+
+)
+}
+
+</div>
+)}
     </div>
     
   );

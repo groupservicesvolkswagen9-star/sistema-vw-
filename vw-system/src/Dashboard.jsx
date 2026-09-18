@@ -137,7 +137,9 @@ if (rol === "gerente") {
         });
 
       setNotificaciones(lista);
-
+        if (lista.length > notificaciones.length) {
+         setNotificacionesLeidas(false);
+        }
     } catch (error) {
 
       console.error(error);

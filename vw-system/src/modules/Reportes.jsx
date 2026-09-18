@@ -1,17 +1,24 @@
 import { useState, useEffect } from "react";
 import ReporteMensual from "./ReporteMensual";
 import OKR from "./OKR";
-
+import CierreMensual from "./CierreMensual";
 export default function Reportes({
   rol,
   user,
 }) {
 
-  const [vista,
-  setVista] =
-  useState(
-    "reporteMensual"
-  );
+const [vista,
+setVista] =
+useState(
+
+  rol === "coordinador" ||
+  rol === "gerente"
+
+    ? "cierreMensual"
+
+    : "reporteMensual"
+
+);
 
 
 return (
@@ -27,7 +34,9 @@ return (
 📊 {
   vista === "reporteMensual"
     ? "Reporte Mensual"
-    : "OKR"
+    : vista === "okr"
+    ? "OKR"
+    : "Cierre Mensual"
 }
 </h2>
 
@@ -38,6 +47,12 @@ return (
     marginBottom: "20px"
   }}
 >
+
+{
+(
+  rol === "empleado" ||
+  rol === "admin"
+) && (
 
 <button
   className="fb-btn"
@@ -52,13 +67,23 @@ return (
         : "black"
   }}
   onClick={() =>
-    setVista("reporteMensual")
+    setVista(
+      "reporteMensual"
+    )
   }
 >
-  Reporte Mensual
+📝 Reporte Mensual
 </button>
 
+)
+}
 
+
+{
+(
+  rol === "empleado" ||
+  rol === "admin"
+) && (
 
 <button
   className="fb-btn"
@@ -76,12 +101,45 @@ return (
     setVista("okr")
   }
 >
-  OKR
+🎯 OKR
 </button>
 
+)
+}
+{
+(
+  rol === "coordinador" ||
+  rol === "gerente" ||
+  rol === "admin"
+) && (
+
+<button
+  className="fb-btn"
+  style={{
+    background:
+      vista === "cierreMensual"
+        ? "#0a6ed1"
+        : "#e0e0e0",
+    color:
+      vista === "cierreMensual"
+        ? "white"
+        : "black"
+  }}
+  onClick={() =>
+    setVista("cierreMensual")
+  }
+>
+  Cierre Mensual
+</button>
+
+)}
 </div>
 
 {
+(
+  rol === "empleado" ||
+  rol === "admin"
+) &&
 vista ===
 "reporteMensual" && (
 
@@ -94,6 +152,10 @@ vista ===
 }
 
 {
+(
+  rol === "empleado" ||
+  rol === "admin"
+) &&
 vista === "okr" && (
 
 <OKR
@@ -103,7 +165,21 @@ vista === "okr" && (
 
 )
 }
+{
+(
+  rol === "coordinador" ||
+  rol === "gerente" ||
+  rol === "admin"
+) &&
+vista === "cierreMensual" && (
 
+<CierreMensual
+  user={user}
+  rol={rol}
+/>
+
+)
+}
 </div>
 
 );

@@ -23,3 +23,4 @@ dist-ssr
 *.sln
 *.sw?
 backend/service-account.json
+.env
