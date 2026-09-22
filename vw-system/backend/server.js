@@ -8,10 +8,8 @@ const {
 } = require("./graficas");
 const PDFDocument =
   require("pdfkit");
-const { PassThrough } =
-  require("stream");
-const PptxGenJS =
-  require("pptxgenjs");
+
+
 
 const {
   db
@@ -750,6 +748,69 @@ const mes =
         ok: false,
         error:
           error.message
+      });
+
+    }
+
+  }
+);
+//////////////////////////////////////////////////////
+// SUBIR PPT A CLOUD STORAGE
+//////////////////////////////////////////////////////
+
+app.post(
+  "/subir-ppt",
+  upload.single("archivo"),
+  async (req, res) => {
+
+    try {
+
+      if (!req.file) {
+
+        return res.status(400).json({
+          ok: false,
+          error: "No se recibió archivo"
+        });
+
+      }
+
+      const archivo = req.file;
+
+      const anio = req.body.anio;
+
+      const mes = req.body.mes;
+
+      const tipoReporte =
+        req.body.tipoReporte || "GENERAL";
+
+
+
+      const ruta =
+        `documentos/ppt/${anio}/${mes}/${tipoReporte}/${archivo.originalname}`;
+
+      await bucket
+        .file(ruta)
+        .save(
+          archivo.buffer,
+          {
+            contentType:
+              "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+          }
+        );
+
+      res.json({
+        ok: true,
+        ruta
+      });
+
+    }
+    catch (error) {
+
+      console.error(error);
+
+      res.status(500).json({
+        ok: false,
+        error: error.message
       });
 
     }
